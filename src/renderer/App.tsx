@@ -1,50 +1,44 @@
-import { MemoryRouter as Router, Routes, Route } from 'react-router-dom';
-import icon from '../../assets/icon.svg';
+import { useLayoutEffect } from 'react';
 import './App.css';
-
-const Hello = () => {
-  return (
-    <div>
-      <div className="Hello">
-        <img width="200px" alt="icon" src={icon} />
-      </div>
-      <h1>electron-react-boilerplate</h1>
-      <div className="Hello">
-        <a
-          href="https://electron-react-boilerplate.js.org/"
-          target="_blank"
-          rel="noreferrer"
-        >
-          <button type="button">
-            <span role="img" aria-label="books">
-              📚
-            </span>
-            Read our docs
-          </button>
-        </a>
-        <a
-          href="https://github.com/sponsors/electron-react-boilerplate"
-          target="_blank"
-          rel="noreferrer"
-        >
-          <button type="button">
-            <span role="img" aria-label="books">
-              🙏
-            </span>
-            Donate
-          </button>
-        </a>
-      </div>
-    </div>
-  );
-};
+import ContextMenu from './context_menu';
+import DialogueTree from './core';
 
 export default function App() {
+  useLayoutEffect(() => {
+    const tree = new DialogueTree({
+      containerId: 'dialogue-tree-container',
+    });
+    tree.init();
+    tree.load({
+      roots: [
+        {
+          data: {
+            title: 'flare',
+          },
+          type: 'root',
+          children: [
+            {
+              data: {
+                content: 'This is a test',
+              },
+              type: 'sentence',
+              children: [],
+            },
+          ],
+        },
+      ],
+    });
+  }, []);
   return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<Hello />} />
-      </Routes>
-    </Router>
+    <>
+      <div
+        id="dialogue-tree-container"
+        style={{
+          height: '100%',
+          width: '100%',
+          padding: '30px',
+        }}
+      ></div>
+    </>
   );
 }
