@@ -26,9 +26,8 @@ const NodeCard = ({
           borderRadius: '36px',
           background: selecting ? activeColor : normalColor,
           transition: selecting ? '' : 'background 0.5s',
-          boxShadow: selecting
-            ? 'rgba(0, 0, 0, 0.19) 0px 10px 20px, rgba(0, 0, 0, 0.23) 0px 6px 6px'
-            : '',
+          boxShadow:
+            'rgba(0, 0, 0, 0.19) 0px 10px 20px, rgba(0, 0, 0, 0.23) 0px 6px 6px',
           '&:hover': {
             background: selecting ? activeColor : hoverColor,
           },
@@ -40,9 +39,5 @@ const NodeCard = ({
     </Stack>
   );
 };
-
-/* const LinkAction = () => {
- *   return <AddCircleIcon sx={{ color: '#ffd4a3', cursor: 'pointer' }} />;
- * }; */
 
 export default NodeCard;

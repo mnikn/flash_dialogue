@@ -9,7 +9,8 @@
  * `./src/main.js` using webpack. This gives us some performance wins.
  */
 import path from 'path';
-import { app, BrowserWindow, shell, ipcMain } from 'electron';
+import fs from 'fs';
+import { app, BrowserWindow, shell, ipcMain, dialog } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
 import MenuBuilder from './menu';
@@ -30,6 +31,83 @@ ipcMain.on('ipc-example', async (event, arg) => {
   console.log(msgTemplate(arg));
   event.reply('ipc-example', msgTemplate('pong'));
 });
+
+ipcMain.on('openJsonFile', async (_, arg) => {
+  if (!mainWindow) {
+    return;
+  }
+
+  let data;
+  if (arg?.filePath) {
+    data = fs.readFileSync(arg.filePath).toString();
+  } else {
+    data = dialog.showOpenDialogSync(mainWindow, {
+      filters: [{ name: 'Data', extensions: ['json'] }],
+    });
+  }
+  let res: any = data;
+  if (Array.isArray(data)) {
+    res = data?.map((item: string) => {
+      return { path: item, data: fs.readFileSync(item).toString() };
+    });
+  } else {
+    console.log(res);
+    res = fs.readFileSync(res).toString();
+  }
+  mainWindow.webContents.send('openFile', { res, arg });
+});
+
+ipcMain.on('readJsonFile', async (event, arg) => {
+  if (fs.existsSync(arg.path)) {
+    const content = fs.readFileSync(arg.path).toString();
+    event.reply('readJsonFile', { res: content, arg });
+  } else {
+    event.reply('readJsonFile', { res: null, arg });
+  }
+});
+
+// ipcMain.on('writeJsonFile', async (event, arg) => {
+//   fs.writeFileSync(arg.path, arg.data);
+//   event.reply('writeFile', { arg, res: true });
+// });
+
+ipcMain.on('saveJsonFile', async (event, arg = {}) => {
+  if (!mainWindow) {
+    return;
+  }
+  let path = arg.path;
+  if (!path) {
+    path = dialog.showSaveDialogSync(mainWindow, {
+      filters: [{ name: 'Data', extensions: ['json'] }],
+    });
+  }
+  if (path) {
+    fs.writeFileSync(path, arg.data);
+    const data = {
+      res: { path },
+      arg,
+    };
+    event.reply('saveJsonFile', data);
+  }
+});
+
+// ipcMain.on('saveJsonFileDialog', async (event, arg) => {
+//   if (!mainWindow) {
+//     return;
+//   }
+//   const path = dialog.showSaveDialogSync(mainWindow, {
+//     filters: [{ name: 'Data', extensions: ['json'] }],
+//   });
+//   if (path) {
+//     fs.writeFileSync(path, arg.data);
+//     const data = {
+//       res: { path },
+//       arg,
+//     };
+//     event.reply('saveJsonFileDialog', data);
+//     // mainWindow.webContents.send('saveJsonFileDialog', data);
+//   }
+// });
 
 if (process.env.NODE_ENV === 'production') {
   const sourceMapSupport = require('source-map-support');
@@ -76,6 +154,7 @@ const createWindow = async () => {
     icon: getAssetPath('icon.png'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
+      webSecurity: false,
     },
   });
 

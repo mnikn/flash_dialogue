@@ -2,12 +2,18 @@ import Node, { NodeJsonData } from '.';
 
 export interface BranchData {
   content: string;
+  actors: {
+    id: string;
+    portrait: {
+      id: string;
+      pic: string;
+    };
+  }[];
+  actorPosition: 'left' | 'center' | 'right';
 }
 
 export interface BranchNodeJsonData extends NodeJsonData {
-  data: {
-    content: string;
-  };
+  data: BranchData;
 }
 
 export default class BranchNode extends Node<BranchData> {
@@ -16,6 +22,8 @@ export default class BranchNode extends Node<BranchData> {
     if (!data) {
       this.data = {
         content: '',
+        actors: [],
+        actorPosition: 'left',
       };
     }
   }

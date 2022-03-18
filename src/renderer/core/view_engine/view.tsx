@@ -1,34 +1,65 @@
-import { useLayoutEffect, useRef, useState } from 'react';
-import * as d3 from 'd3';
-import RootNode from '../model/node/root';
-import Sentence from './components/sentence';
+import PreviewIcon from '@mui/icons-material/Preview';
+import { Button } from '@mui/material';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
-import Root from './components/root';
+import * as d3 from 'd3';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+import useEventState from 'renderer/hooks/use_event_state';
+import Node from '../model/node';
+import BranchNode from '../model/node/branch';
+import { appendChildNode, appendSameLevelNode } from '../model/node/factory';
+import RootNode from '../model/node/root';
+import SentenceNode from '../model/node/sentence';
+import ViewProvider from '../view_provider';
 import Branch from './components/branch';
 import Connection from './components/connection';
-import { appendChildNode, appendSameLevelNode } from '../model/node/factory';
-/* import useClickOutside from 'renderer/hooks/use_click_outside'; */
+import PreviewDialogue from './components/preview_dialogue';
+import Root from './components/root';
+import Sentence from './components/sentence';
+import SettingsDialog from './components/settings';
+import Context, { GlobalSettings } from './context';
+import { showEdit } from './event';
+import DialogueToolbar from './toolbar';
 
 const View = ({
   container,
-  rootNode,
+  dialogue,
+  owner,
 }: {
   container: HTMLElement;
-  rootNode: RootNode;
+  dialogue: RootNode;
+  owner: ViewProvider;
 }) => {
   const domRef = useRef<HTMLDivElement>(null);
   const [contextMenu, setContextMenu] = useState<any>(null);
-  const [selectingNode, setSelectingNode] = useState<any>(null);
-  const [editing, setEditing] = useState(false);
 
-  const [rootData, setRootData] = useState<RootNode>(rootNode);
+  const editing = useEventState<boolean>({
+    event: owner.event,
+    property: 'editing',
+    initialVal: false,
+  });
+  const selectingNode = useEventState<Node<any> | null>({
+    event: owner.event,
+    property: 'selectingNode',
+    initialVal: null,
+  });
+  const [settingDialogVisible, setSettingDialogVisible] = useState(false);
+  const [previewDialogueVisible, setPreviewDialogueVisible] = useState(false);
+
+  const [rootData, setRootData] = useState<RootNode>(dialogue);
   const [treeData, setTreeData] = useState<any[]>([]);
   const [linkData, setLinkData] = useState<any[]>([]);
 
-  /* const selectNode = (item) => {
-   *   setSelectingNode(item);
-   * } */
+  const [globalSettings, setGlobalSettings] = useState<GlobalSettings>({
+    actors: [],
+  });
 
   const handleContextMenu = (event: any) => {
     event.preventDefault();
@@ -163,42 +194,75 @@ const View = ({
     updateNodeTree(root);
   }, [rootData]);
 
+  const doAppendSameLevelNode = useCallback(
+    (type: 'sentence' | 'branch') => {
+      if (!owner.selectingNode) {
+        return;
+      }
+      appendSameLevelNode(owner.selectingNode, type);
+      setRootData((prev) => {
+        const updateNode = new RootNode(prev.data, prev.id);
+        updateNode.children = prev.children;
+        return updateNode;
+      });
+    },
+    [owner]
+  );
+
+  const doAppendChildNode = useCallback(
+    (type: 'sentence' | 'branch') => {
+      if (!selectingNode) {
+        return;
+      }
+      appendChildNode(selectingNode, type);
+      setRootData((prev) => {
+        const updateNode = new RootNode(prev.data, prev.id);
+        updateNode.children = prev.children;
+        return updateNode;
+      });
+    },
+    [selectingNode]
+  );
+
+  const doDeleteNode = useCallback(() => {
+    if (
+      !owner ||
+      !owner.selectingNode ||
+      owner.selectingNode instanceof RootNode
+    ) {
+      return;
+    }
+    const snode = owner.selectingNode as Node<any>;
+    snode.parent?.deleteChildNode(snode.id);
+    setRootData((prev) => {
+      const updateNode = new RootNode(prev.data, prev.id);
+      updateNode.children = prev.children;
+      return updateNode;
+    });
+    owner.selectingNode = null;
+  }, [owner]);
+
   useLayoutEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if (
-        editing ||
-        !selectingNode ||
-        (selectingNode instanceof RootNode && selectingNode.children.length > 0)
-      ) {
+      if (owner.editing || !owner.selectingNode) {
         return;
       }
       if (e.code === 'Enter') {
-        appendSameLevelNode(selectingNode, e.ctrlKey ? 'branch' : 'sentence');
-        setRootData((prev) => {
-          const updateNode = new RootNode(prev.data, prev.id);
-          updateNode.children = prev.children;
-          return updateNode;
-        });
+        doAppendSameLevelNode(e.ctrlKey ? 'branch' : 'sentence');
       }
 
       if (e.code === 'Tab') {
-        appendChildNode(selectingNode, e.ctrlKey ? 'branch' : 'sentence');
-        setRootData((prev) => {
-          const updateNode = new RootNode(prev.data, prev.id);
-          updateNode.children = prev.children;
-          return updateNode;
-        });
+        doAppendChildNode(e.ctrlKey ? 'branch' : 'sentence');
       }
 
       console.log(e.code);
-      if (e.code === 'Backspace' && !(selectingNode instanceof RootNode)) {
-        selectingNode.parent.deleteChildNode(selectingNode.id);
-        setRootData((prev) => {
-          const updateNode = new RootNode(prev.data, prev.id);
-          updateNode.children = prev.children;
-          return updateNode;
-        });
-        setSelectingNode(null);
+      if (e.code === 'Backspace') {
+        doDeleteNode();
+      }
+
+      if (e.code === 'Space') {
+        owner.editing = true;
+        showEdit();
       }
     };
     document.addEventListener('keydown', onKeyDown);
@@ -206,166 +270,339 @@ const View = ({
     return () => {
       document.removeEventListener('keydown', onKeyDown);
     };
-  }, [editing, selectingNode]);
+  }, [owner, doDeleteNode, doAppendSameLevelNode, doAppendChildNode]);
 
-  /* useClickOutside(domRef.current as HTMLElement, () => {
-   *   setSelectingNode(null);
-   * }); */
+  const sentenceActionMenu = useMemo(() => {
+    let insertChildActions: any[] = [];
+    insertChildActions = [
+      {
+        key: 'sentence_insert_child_sentence',
+        name: 'Insert child sentence',
+        action: () => doAppendChildNode('sentence'),
+      },
+      {
+        key: 'sentence_insert_child_branch',
+        name: 'Insert child branch',
+        action: () => doAppendChildNode('branch'),
+      },
+    ];
+
+    let insertSlbingActions: any[] = [];
+    if (selectingNode?.parent instanceof BranchNode) {
+      insertSlbingActions = [
+        {
+          key: 'sentence_insert_sibling_sentence',
+          name: 'Insert sibling sentence',
+          action: () => doAppendSameLevelNode('sentence'),
+        },
+        {
+          key: 'sentence_insert_sibling_branch',
+          name: 'Insert sibling branch',
+          action: () => doAppendSameLevelNode('branch'),
+        },
+      ];
+    }
+
+    return [
+      ...insertChildActions,
+      ...insertSlbingActions,
+      {
+        key: 'sentence_delete_node',
+        name: 'Delete',
+        action: () => doDeleteNode(),
+      },
+    ];
+  }, [selectingNode, doAppendChildNode, doAppendSameLevelNode, doDeleteNode]);
+
+  const branchActionMenu = useMemo(() => {
+    const insertChildActions = [
+      {
+        key: 'branch_insert_child_sentence',
+        name: 'Insert child sentence',
+        action: () => doAppendChildNode('sentence'),
+      },
+      {
+        key: 'branch_insert_child_branch',
+        name: 'Insert child branch',
+        action: () => doAppendChildNode('branch'),
+      },
+    ];
+
+    let insertSlbingActions: any[] = [];
+    if (selectingNode?.parent instanceof BranchNode) {
+      insertSlbingActions = [
+        {
+          key: 'branch_insert_sibling_sentence',
+          name: 'Insert sibling sentence',
+          action: () => doAppendSameLevelNode('sentence'),
+        },
+        {
+          key: 'branch_insert_sibling_branch',
+          name: 'Insert sibling branch',
+          action: () => doAppendSameLevelNode('branch'),
+        },
+      ];
+    }
+
+    return [
+      ...insertChildActions,
+      ...insertSlbingActions,
+      {
+        key: 'sentence_delete_node',
+        name: 'Delete',
+        action: () => doDeleteNode(),
+      },
+    ];
+  }, [selectingNode, doAppendChildNode, doAppendSameLevelNode, doDeleteNode]);
+
+  useEffect(() => {
+    owner.owner.dataProvider.currentDialogue = rootData;
+  }, [rootData]);
 
   return (
-    <div
-      id="dialogue_tree"
-      style={{
-        width: '100%',
-        height: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        alignItems: 'center',
+    <Context.Provider
+      value={{
+        globalSettings,
+        owner,
       }}
-      onContextMenu={handleContextMenu}
     >
       <div
-        id="dialogue_tree_core"
-        ref={domRef}
+        id="dialogue_tree"
         style={{
           width: '100%',
           height: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          alignItems: 'center',
         }}
+        onContextMenu={handleContextMenu}
       >
-        <div id="nodes" style={{ position: 'relative', cursor: 'pointer' }}>
-          {treeData.map((item) => {
-            return (
-              <div
-                key={item.id}
-                style={{
-                  transform: `translate(${item.y0}px,${item.x0}px)`,
-                  position: 'absolute',
-                }}
-                onClick={() => {
-                  if (editing) {
-                    return;
-                  }
-                  setSelectingNode(
-                    item.data.id === selectingNode?.id
-                      ? null
-                      : rootData.findChildNode(item.data.id)
-                  );
-                }}
-              >
-                {item.data.type === 'sentence' && (
-                  <Sentence
-                    selecting={selectingNode?.id === item.data.id}
-                    data={item.data}
-                    onEdit={() => {
-                      setSelectingNode(rootData.findChildNode(item.data.id));
-                      setEditing(true);
-                    }}
-                    onEditFinish={(confirm, form) => {
-                      setEditing(false);
-                      setSelectingNode(null);
-                      if (confirm) {
-                        item.data = form;
-                        setRootData((prev) => {
-                          const node = prev.findChildNode(item.data.id);
-                          node.data = form?.data;
-
-                          const updateNode = new RootNode(prev.data, prev.id);
-                          updateNode.children = prev.children;
-                          return updateNode;
-                        });
-                      }
-                    }}
-                  />
-                )}
-                {item.data.type === 'branch' && (
-                  <Branch
-                    selecting={selectingNode?.id === item.data.id}
-                    data={item.data}
-                    onEdit={() => {
-                      setSelectingNode(rootData.findChildNode(item.data.id));
-                      setEditing(true);
-                    }}
-                    onEditFinish={(confirm, form) => {
-                      setEditing(false);
-                      setSelectingNode(null);
-                      if (confirm) {
-                        item.data = form;
-                        setRootData((prev) => {
-                          const node = prev.findChildNode(item.data.id);
-                          node.data = form?.data;
-
-                          const updateNode = new RootNode(prev.data, prev.id);
-                          updateNode.children = prev.children;
-                          return updateNode;
-                        });
-                      }
-                    }}
-                  />
-                )}
-                {item.data.type === 'root' && (
-                  <Root
-                    selecting={selectingNode?.id === item.data.id}
-                    data={item.data}
-                  />
-                )}
-              </div>
-            );
-          })}
-        </div>
-        <svg
-          id="dialogue-tree-links-container"
-          style={{
-            position: 'absolute',
-            width: '100%',
-            height: '100%',
-            overflow: 'inherit',
-            pointerEvents: 'none',
-          }}
-        ></svg>
         <div
-          id="connections"
+          id="dialogue_tree_core"
+          ref={domRef}
           style={{
-            position: 'absolute',
             width: '100%',
             height: '100%',
-            overflow: 'inherit',
-            pointerEvents: 'none',
           }}
         >
-          {linkData.map((item) => {
-            const data = item.from.data.links.find(
-              (d) =>
-                d.sourceId === item.from.data.id &&
-                d.targetId === item.target.data.id
-            );
-            return (
-              <Connection
-                key={item.from.data.id + '-' + item.target.data.id}
-                from={item.from}
-                target={item.target}
-                linkData={data}
-              />
-            );
-          })}
+          <div id="nodes" style={{ position: 'relative', cursor: 'pointer' }}>
+            {treeData.map((item) => {
+              return (
+                <div
+                  key={item.id}
+                  style={{
+                    transform: `translate(${item.y0}px,${item.x0}px)`,
+                    position: 'absolute',
+                  }}
+                  onClick={() => {
+                    if (editing) {
+                      return;
+                    }
+                    owner.selectingNode =
+                      item.data.id === selectingNode?.id
+                        ? null
+                        : rootData.findChildNode(item.data.id);
+                  }}
+                >
+                  {item.data.type === 'sentence' && (
+                    <Sentence
+                      selecting={selectingNode?.id === item.data.id}
+                      data={item.data}
+                      onEdit={() => {
+                        owner.selectingNode = rootData.findChildNode(
+                          item.data.id
+                        );
+                        owner.editing = true;
+                      }}
+                      onEditFinish={(confirm, form) => {
+                        owner.selectingNode = null;
+                        if (confirm) {
+                          item.data = form;
+                          setRootData((prev) => {
+                            const node = prev.findChildNode(item.data.id);
+                            node.data = form?.data;
+
+                            const updateNode = new RootNode(prev.data, prev.id);
+                            updateNode.children = prev.children;
+                            return updateNode;
+                          });
+                        }
+                      }}
+                    />
+                  )}
+                  {item.data.type === 'branch' && (
+                    <Branch
+                      selecting={selectingNode?.id === item.data.id}
+                      data={item.data}
+                      onEdit={() => {
+                        owner.selectingNode = rootData.findChildNode(
+                          item.data.id
+                        );
+                        owner.editing = true;
+                      }}
+                      onEditFinish={(confirm, form) => {
+                        owner.editing = false;
+                        owner.selectingNode = null;
+                        if (confirm) {
+                          item.data = form;
+                          setRootData((prev) => {
+                            const node = prev.findChildNode(item.data.id);
+                            node.data = form?.data;
+
+                            const updateNode = new RootNode(prev.data, prev.id);
+                            updateNode.children = prev.children;
+                            return updateNode;
+                          });
+                        }
+                      }}
+                    />
+                  )}
+                  {item.data.type === 'root' && (
+                    <Root
+                      selecting={selectingNode?.id === item.data.id}
+                      data={item.data}
+                    />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          <svg
+            id="dialogue-tree-links-container"
+            style={{
+              position: 'absolute',
+              width: '100%',
+              height: '100%',
+              overflow: 'inherit',
+              pointerEvents: 'none',
+            }}
+          ></svg>
+          <div
+            id="connections"
+            style={{
+              position: 'absolute',
+              width: '100%',
+              height: '100%',
+              overflow: 'inherit',
+              pointerEvents: 'none',
+            }}
+          >
+            {linkData.map((item) => {
+              const data = item.from.data.links.find(
+                (d) =>
+                  d.sourceId === item.from.data.id &&
+                  d.targetId === item.target.data.id
+              );
+              return (
+                <Connection
+                  key={item.from.data.id + '-' + item.target.data.id}
+                  from={item.from}
+                  target={item.target}
+                  linkData={data}
+                  onChange={(val) => {
+                    data.data = val;
+                    setLinkData((prev) => {
+                      return [...prev];
+                    });
+                  }}
+                />
+              );
+            })}
+          </div>
         </div>
+        <Menu
+          open={contextMenu !== null}
+          onClose={handleClose}
+          anchorReference="anchorPosition"
+          anchorPosition={
+            contextMenu !== null
+              ? { top: contextMenu.mouseY, left: contextMenu.mouseX }
+              : undefined
+          }
+        >
+          {!selectingNode && (
+            <MenuItem
+              onClick={() => {
+                setSettingDialogVisible(true);
+                handleClose();
+              }}
+            >
+              Settings
+            </MenuItem>
+          )}
+          {selectingNode instanceof SentenceNode &&
+            sentenceActionMenu.map((item) => {
+              return (
+                <MenuItem
+                  key={item.key}
+                  onClick={() => {
+                    item.action();
+                    handleClose();
+                  }}
+                >
+                  {item.name}
+                </MenuItem>
+              );
+            })}
+
+          {selectingNode instanceof BranchNode &&
+            branchActionMenu.map((item) => {
+              return (
+                <MenuItem
+                  key={item.key}
+                  onClick={() => {
+                    item.action();
+                    handleClose();
+                  }}
+                >
+                  {item.name}
+                </MenuItem>
+              );
+            })}
+        </Menu>
+
+        {settingDialogVisible && (
+          <SettingsDialog
+            close={() => {
+              setSettingDialogVisible(false);
+            }}
+            data={globalSettings}
+            onSubmit={(val) => {
+              setGlobalSettings(val);
+            }}
+          />
+        )}
+
+        {previewDialogueVisible && (
+          <PreviewDialogue
+            data={rootData.toRenderJson()}
+            close={() => {
+              setPreviewDialogueVisible(false);
+            }}
+          />
+        )}
+
+        <Button
+          variant="contained"
+          startIcon={<PreviewIcon />}
+          size="large"
+          sx={{
+            position: 'absolute',
+            right: '32px',
+            top: '32px',
+          }}
+          onClick={() => {
+            setPreviewDialogueVisible(true);
+          }}
+          disableFocusRipple
+        >
+          Preview Dialogue!
+        </Button>
       </div>
-      <Menu
-        open={contextMenu !== null}
-        onClose={handleClose}
-        anchorReference="anchorPosition"
-        anchorPosition={
-          contextMenu !== null
-            ? { top: contextMenu.mouseY, left: contextMenu.mouseX }
-            : undefined
-        }
-      >
-        <MenuItem onClick={handleClose}>Copy</MenuItem>
-        <MenuItem onClick={handleClose}>Print</MenuItem>
-        <MenuItem onClick={handleClose}>Highlight</MenuItem>
-        <MenuItem onClick={handleClose}>Email</MenuItem>
-      </Menu>
-    </div>
+
+      <DialogueToolbar />
+    </Context.Provider>
   );
 };
 

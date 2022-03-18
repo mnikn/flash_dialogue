@@ -16,15 +16,24 @@ const Root = ({
       hoverColor={'#ffd4a3'}
       activeColor={'#ffecd6'}
     >
-      <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-        <CardContent sx={{ flex: '1 0 auto' }}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
+        <CardContent
+          sx={{
+            flex: '1 0 auto',
+            width: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
           <Typography
-            variant="subtitle1"
-            color="text.secondary"
+            variant="h4"
             component="div"
             sx={{
               wordBreak: 'break-all',
               color: '#0d2b45',
+              userSelect: 'none',
+              textAlign: 'center',
             }}
           >
             {data.data.title}
@@ -34,9 +43,5 @@ const Root = ({
     </NodeCard>
   );
 };
-
-/* const LinkAction = () => {
- *   return <AddCircleIcon sx={{ color: '#ffd4a3', cursor: 'pointer' }} />;
- * }; */
 
 export default Root;

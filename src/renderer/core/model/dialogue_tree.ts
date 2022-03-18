@@ -4,11 +4,27 @@ import SentenceNode from './node/sentence';
 import BranchNode from './node/branch';
 import { NodeJsonData } from './node';
 
+export interface Actor {
+  id: string;
+  name: string;
+  protraits: {
+    id: string;
+    pic: string;
+  }[];
+}
+
+export interface ProjectSettings {
+  actors: Actor[];
+}
+
 class DialogueTreeModel {
-  public roots: RootNode[] = [];
+  public dialogues: RootNode[] = [];
+  public projectSettings: ProjectSettings = {
+    actors: [],
+  };
 
   constructor(jsonData: DialogueTreeJson) {
-    this.roots = jsonData.roots.map((item) => {
+    this.dialogues = jsonData.dialogues.map((item) => {
       return this.parseJsonData(item) as RootNode;
     });
   }
@@ -62,6 +78,15 @@ class DialogueTreeModel {
       }
     }
     return new SentenceNode();
+  }
+
+  public toJson(): any {
+    return {
+      dialogues: this.dialogues.map((item) => {
+        return item.toRenderJson();
+      }),
+      projectSettings: {}
+    };
   }
 }
 

@@ -1,47 +1,50 @@
 import Node, { NodeJsonData } from '../node';
 
-export interface SetenceData {
+export interface SentenceData {
   content: string;
-  hasActor: boolean;
-  actor?: {
+  actors: {
     id: string;
-    portrait: string;
-    position: string;
-  };
+    portrait: {
+      id: string;
+      pic: string;
+    };
+  }[];
+  actorPosition: 'left' | 'center' | 'right';
 }
 
 export interface SentenceNodeJsonData extends NodeJsonData {
-  data: SetenceData;
+  data: SentenceData;
 }
 
-export default class SentenceNode extends Node<SetenceData> {
+export default class SentenceNode extends Node<SentenceData> {
   constructor(data?: any, id?: string) {
     super(data, id);
     if (!data) {
       this.data = {
         content: '',
-        hasActor: false,
+        actors: [],
+        actorPosition: 'left',
       };
     }
   }
-  get children() {
-    return this._children;
-  }
-  set children(val: Node<any>[]) {
-    if (val.length > 1) {
-      throw new Error('sentence node children can not have multi');
-    }
+  // get children() {
+  //   return this._children;
+  // }
+  // set children(val: Node<any>[]) {
+  //   if (val.length > 1) {
+  //     throw new Error('sentence node children can not have multi');
+  //   }
 
-    // remove origin children parent and assign new one
-    this._children.forEach((item) => {
-      item.parent = null;
-    });
+  //   // remove origin children parent and assign new one
+  //   this._children.forEach((item) => {
+  //     item.parent = null;
+  //   });
 
-    this._children = val.map((item) => {
-      item.parent = this;
-      return item;
-    });
-  }
+  //   this._children = val.map((item) => {
+  //     item.parent = this;
+  //     return item;
+  //   });
+  // }
 
   public toRenderJson(): SentenceNodeJsonData {
     let baseJson = super.toRenderJson();

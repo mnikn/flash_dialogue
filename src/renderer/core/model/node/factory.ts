@@ -14,9 +14,9 @@ export const appendSameLevelNode = (
       !sourceNode.parent
     )
   ) {
-    if (sourceNode.parent instanceof SentenceNode) {
-      return null;
-    }
+    // if (sourceNode.parent instanceof SentenceNode) {
+    //   return null;
+    // }
     let newNode: Node<any>;
     switch (type) {
       case 'sentence': {
@@ -40,9 +40,9 @@ export const appendChildNode = (
   sourceNode: Node<any>,
   type: 'sentence' | 'branch'
 ) => {
-  if (sourceNode instanceof SentenceNode && sourceNode.children.length >= 1) {
-    return null;
-  }
+  // if (sourceNode instanceof SentenceNode && sourceNode.children.length >= 1) {
+  //   return null;
+  // }
   let newNode: Node<any>;
   switch (type) {
     case 'sentence': {

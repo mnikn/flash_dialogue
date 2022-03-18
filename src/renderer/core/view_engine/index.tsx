@@ -1,22 +1,34 @@
 import RootNode from '../model/node/root';
 import ViewProvider from '../view_provider';
-import { render } from 'react-dom';
+import { render, unmountComponentAtNode } from 'react-dom';
 import View from './view';
 
 class ViewEngine {
   protected owner: ViewProvider;
+  public rendering: boolean = false;
   constructor(owner: ViewProvider) {
     this.owner = owner;
   }
 
-  public renderRoot(root: RootNode) {
+  public renderDialogue(dialogue: RootNode) {
     if (!this.owner.containerElement) {
       return;
     }
     render(
-      <View container={this.owner.containerElement} rootNode={root} />,
+      <View
+        container={this.owner.containerElement}
+        dialogue={dialogue}
+        owner={this.owner}
+      />,
       this.owner.containerElement
     );
+    this.rendering = true;
+  }
+
+  public stop() {
+    console.log(this.owner.containerElement);
+    unmountComponentAtNode(this.owner.containerElement as HTMLDivElement);
+    this.rendering = false;
   }
 }
 

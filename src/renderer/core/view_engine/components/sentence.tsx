@@ -8,18 +8,19 @@ import {
   DialogTitle,
   FormControl,
   InputLabel,
+  ListSubheader,
+  MenuItem,
   Select,
+  Stack,
   TextField,
   Typography,
-  MenuItem,
-  FormGroup,
-  FormControlLabel,
-  Checkbox,
-  Stack,
 } from '@mui/material';
-import { useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import { SentenceNodeJsonData } from 'renderer/core/model/node/sentence';
+import { listenEdit } from '../event';
 import NodeCard from './node_card';
+import Context from '../context';
+import { getFinalImgPath } from 'renderer/utils/pic';
 
 const FormDialog = ({
   close,
@@ -31,6 +32,7 @@ const FormDialog = ({
   onSubmit: (form: SentenceNodeJsonData) => void;
 }) => {
   const [form, setForm] = useState<SentenceNodeJsonData>(data);
+  const { globalSettings } = useContext(Context);
   const handleOnClose = (_: any, reason: string) => {
     if (reason !== 'backdropClick') {
       close();
@@ -38,72 +40,182 @@ const FormDialog = ({
   };
 
   const submit = () => {
+    console.log('form: ', form);
     onSubmit(form);
   };
+
+  // flatten actor portrait to support group select
+  const selectOptions = globalSettings.actors.reduce((res: any[], item) => {
+    return [
+      ...res,
+      { id: item.id, name: item.name, type: 'actor' },
+      ...item.protraits.map((p) => {
+        return {
+          ...p,
+          actor: item,
+          type: 'portrait',
+        };
+      }),
+    ];
+  }, []);
 
   return (
     <Dialog open onClose={handleOnClose}>
       <DialogTitle>Edit sentence</DialogTitle>
-      <DialogContent sx={{ width: '500px' }}>
-        <Stack direction="row" spacing={2}>
-          <FormGroup sx={{ flexShrink: 0 }}>
-            <FormControlLabel
-              control={
-                <Checkbox
-                  value={form.data.hasActor}
-                  onChange={(e) => {
-                    setForm((prev) => {
-                      return {
-                        ...prev,
-                        data: {
-                          ...prev.data,
-                          hasActor: e.target.checked,
-                        },
-                      };
-                    });
-                  }}
-                />
-              }
-              label="Has Actor"
-            />
-          </FormGroup>
-          {form.data.hasActor && (
-            <FormControl sx={{ flexGrow: 1 }}>
-              <InputLabel id="demo-simple-select-label">Actor</InputLabel>
-              <Select
-                labelId="demo-simple-select-label"
-                id="demo-simple-select"
-                label={'Actor'}
-                size="small"
-              >
-                <MenuItem>None</MenuItem>
-                <MenuItem>Test</MenuItem>
-              </Select>
-            </FormControl>
-          )}
+      <DialogContent sx={{ width: '500px', paddingTop: '20px!important' }}>
+        <Stack spacing={2}>
+          <FormControl sx={{ flexGrow: 1 }}>
+            <InputLabel id="demo-simple-select-label">Actors</InputLabel>
+            <Select
+              labelId="demo-simple-select-label"
+              id="demo-simple-select"
+              label="Actors"
+              size="small"
+              multiple
+              value={form.data.actors.map(
+                (item) => item.id + ',' + item.portrait.id
+              )}
+              onChange={(e) => {
+                if ((e.target.value as any).length > 0 && !e.target.value[0]) {
+                  return;
+                }
+                setForm((prev) => {
+                  return {
+                    ...prev,
+                    data: {
+                      ...prev.data,
+                      actors: (e.target.value as any).map((item: string) => {
+                        const actorId = item.split(',')[0];
+                        const portraitId = item.split(',')[1];
+                        return {
+                          id: actorId,
+                          portrait: {
+                            id: portraitId,
+                            pic:
+                              globalSettings.actors
+                                .find((a) => a.id === actorId)
+                                ?.protraits.find((p) => {
+                                  return p.id === portraitId;
+                                })?.pic || '',
+                          },
+                        };
+                      }),
+                    },
+                  };
+                });
+              }}
+            >
+              {selectOptions.map((item) => {
+                if (item.type === 'actor') {
+                  return (
+                    <ListSubheader key={item.id}>{item.name}</ListSubheader>
+                  );
+                }
+                return (
+                  <MenuItem
+                    key={item.actor.id + item.id}
+                    value={item.actor.id + ',' + item.id}
+                  >
+                    <img
+                      src={getFinalImgPath(item.pic)}
+                      style={{ height: '24px', marginRight: '4px' }}
+                    />
+                    {item.actor.name} / {item.id}
+                  </MenuItem>
+                );
+              })}
+            </Select>
+          </FormControl>
+
+          <FormControl sx={{ flexGrow: 1 }}>
+            <InputLabel id="demo-simple-select-label">
+              Actor position
+            </InputLabel>
+            <Select
+              labelId="demo-simple-select-label"
+              id="demo-simple-select"
+              label="Actor position"
+              size="small"
+              value={form.data.actorPosition}
+              onChange={(e) => {
+                setForm((prev) => {
+                  return {
+                    ...prev,
+                    data: {
+                      ...prev.data,
+                      actorPosition: e.target.value as any,
+                    },
+                  };
+                });
+              }}
+            >
+              {['left', 'center', 'right'].map((item) => {
+                return (
+                  <MenuItem key={item} value={item}>
+                    {item}
+                  </MenuItem>
+                );
+              })}
+            </Select>
+          </FormControl>
+
+          <TextField
+            autoFocus
+            margin="dense"
+            label="Content"
+            type="text"
+            value={form.data.content}
+            fullWidth
+            multiline
+            onChange={(e: any) => {
+              setForm((prev: any) => {
+                return {
+                  ...prev,
+                  data: {
+                    ...prev.data,
+                    content: e.target.value,
+                  },
+                };
+              });
+            }}
+            rows={5}
+          />
         </Stack>
-        <TextField
-          autoFocus
-          margin="dense"
-          label="Content"
-          type="text"
-          value={form.data.content}
-          fullWidth
-          multiline
-          onChange={(e) => {
-            setForm((prev: any) => {
-              return {
-                ...prev,
-                data: {
-                  ...prev.data,
-                  content: e.target.value,
-                },
-              };
-            });
-          }}
-          rows={5}
-        />
       </DialogContent>
+
+      {/* <Stack spacing={1}>
+          <FormLabel
+          sx={{
+          paddingLeft: '20px',
+          }}
+          >
+          Custom Property:
+          </FormLabel>
+          <FieldWrapper
+          schema={
+          buildSchema({
+          type: 'object',
+          fields: {
+          position: {
+          id: 'position',
+          name: 'position',
+          type: 'select',
+          options: ['Left', 'Right'],
+          defaultValue: 'Left',
+          },
+          },
+          config: {
+          colSpan: 12,
+          enableWhen: null,
+          initialExpand: true,
+          summary: '#{{___index}}',
+          },
+          }) as any
+          }
+          config={{ i18n: [] }}
+          value={{}}
+          />
+          </Stack> */}
       <DialogActions>
         <Button onClick={handleOnClose}>Cancel</Button>
         <Button onClick={submit}>Confirm</Button>
@@ -134,6 +246,19 @@ const Sentence = ({
     setEditDialogOpen(false);
     onEditFinish(false);
   };
+
+  useEffect(() => {
+    const unlistenEdit = listenEdit(() => {
+      if (selecting) {
+        setEditDialogOpen(true);
+      }
+    });
+
+    return () => {
+      unlistenEdit();
+    };
+  }, [selecting]);
+
   return (
     <>
       <NodeCard
@@ -143,7 +268,7 @@ const Sentence = ({
         hoverColor={'#BDFFC9'}
         activeColor={'#A3FFB4'}
       >
-        {data.data.hasActor && (
+        {data.data.actors.length > 0 && (
           <div
             style={{
               width: '144px',
@@ -155,7 +280,7 @@ const Sentence = ({
             }}
           >
             <img
-              src="https://isscdn.mildom.tv/download/file/jp/mildom/nnphotos/2ac6c6a908675de29d61ff299f983d0e.png?size=mini&format=jpg&quality=80"
+              src={getFinalImgPath(data.data.actors[0].portrait.pic)}
               style={{
                 height: '100%',
                 width: '100%',
@@ -172,6 +297,7 @@ const Sentence = ({
               variant="h6"
               sx={{
                 wordBreak: 'break-all',
+                userSelect: 'none',
                 color: '#0d2b45',
               }}
             >

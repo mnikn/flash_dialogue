@@ -1,6 +1,5 @@
 import { useLayoutEffect } from 'react';
 import './App.css';
-import ContextMenu from './context_menu';
 import DialogueTree from './core';
 
 export default function App() {
@@ -10,7 +9,7 @@ export default function App() {
     });
     tree.init();
     tree.load({
-      roots: [
+      dialogues: [
         {
           data: {
             title: 'flare',

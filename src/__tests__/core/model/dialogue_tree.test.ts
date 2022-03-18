@@ -4,7 +4,7 @@ describe('model dialogue tree', () => {
   it('should parse json data correct', () => {
     // single root single node
     const jsonData = {
-      roots: [
+      dialogues: [
         {
           data: {
             title: 'Test for good',
@@ -15,12 +15,12 @@ describe('model dialogue tree', () => {
       ],
     };
     const instance = new DialogueTree(jsonData);
-    const rootA = instance.roots[0];
+    const rootA = instance.dialogues[0];
     expect(rootA.data?.title).toBe('Test for good');
 
     // single root with simple children
     const jsonDataB = {
-      roots: [
+      dialogues: [
         {
           type: 'root',
           data: {
@@ -46,12 +46,12 @@ describe('model dialogue tree', () => {
       ],
     };
     const instanceB = new DialogueTree(jsonDataB);
-    expect(instanceB.roots[0].children[0].data?.content).toBe('Child 1');
-    expect(instanceB.roots[0].children[1].data?.content).toBe('Child 2');
+    expect(instanceB.dialogues[0].children[0].data?.content).toBe('Child 1');
+    expect(instanceB.dialogues[0].children[1].data?.content).toBe('Child 2');
 
     // single root with nested children
     const jsonDataC = {
-      roots: [
+      dialogues: [
         {
           type: 'root',
           data: {
@@ -85,13 +85,13 @@ describe('model dialogue tree', () => {
       ],
     };
     const instanceC = new DialogueTree(jsonDataC);
-    expect(instanceC.roots[0].children[0].children[0].data?.content).toBe(
+    expect(instanceC.dialogues[0].children[0].children[0].data?.content).toBe(
       'Nested child node 1'
     );
 
     // multi root with nested children
     const jsonDataD = {
-      roots: [
+      dialogues: [
         {
           data: {
             title: 'Test for good',
@@ -155,7 +155,7 @@ describe('model dialogue tree', () => {
       ],
     };
     const instanceD = new DialogueTree(jsonDataD);
-    expect(instanceD.roots[1].children[0].children[0].data?.content).toBe(
+    expect(instanceD.dialogues[1].children[0].children[0].data?.content).toBe(
       'B Nested child node 1'
     );
   });

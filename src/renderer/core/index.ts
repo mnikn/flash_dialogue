@@ -1,5 +1,6 @@
-import DialogueTreeModel from './model/dialogue_tree';
+import DataProvider from './data_provider';
 import { RootNodeJsonData } from './model/node/root';
+import { GlobalSettings } from './view_engine/context';
 import ViewProvider from './view_provider';
 
 export interface Config {
@@ -7,9 +8,9 @@ export interface Config {
   viewEngine?: 'svg';
 }
 
-
 export interface DialogueTreeJson {
-  roots: RootNodeJsonData[];
+  dialogues: RootNodeJsonData[];
+  projectSettings: GlobalSettings;
 }
 
 const DEFAULT_CONFIG: Config = {
@@ -19,21 +20,23 @@ const DEFAULT_CONFIG: Config = {
 
 class DialogueTree {
   public config: Config = DEFAULT_CONFIG;
-  private viewProvider: ViewProvider;
-  private model: DialogueTreeModel | null = null;
+  public viewProvider: ViewProvider;
+  public dataProvider: DataProvider;
 
   constructor(config: Config) {
     this.config = { ...this.config, ...config };
+    this.dataProvider = new DataProvider(this);
     this.viewProvider = new ViewProvider(this);
   }
 
   public init() {
+    this.dataProvider.init();
     this.viewProvider.init();
   }
 
   public load(data: DialogueTreeJson) {
-    this.model = new DialogueTreeModel(data);
-    this.viewProvider.render(this.model);
+    this.dataProvider.load(data);
+    this.viewProvider.render(this.dataProvider.data);
   }
 }
 

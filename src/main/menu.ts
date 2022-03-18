@@ -4,7 +4,10 @@ import {
   shell,
   BrowserWindow,
   MenuItemConstructorOptions,
+  ipcMain,
 } from 'electron';
+import path from 'path';
+import fs from 'fs';
 
 interface DarwinMenuItemConstructorOptions extends MenuItemConstructorOptions {
   selector?: string;
@@ -177,7 +180,7 @@ export default class MenuBuilder {
         {
           label: 'Search Issues',
           click() {
-            shell.openExternal('https://github.com/electron/electron/issues');
+            shell.openExternal('https://github.com/mnikn/general-data-manager/issues');
           },
         },
       ],
@@ -198,14 +201,43 @@ export default class MenuBuilder {
         label: '&File',
         submenu: [
           {
-            label: '&Open',
+            label: '&New',
+            accelerator: 'Ctrl+N',
+            click: () => {
+              this.mainWindow.webContents.send('newFile');
+            },
+          },
+          {
+            label: '&Save',
+            accelerator: 'Ctrl+S',
+            click: () => {
+              this.mainWindow.webContents.send('saveFile');
+            },
+          },
+          {
+            label: '&Oepn File',
             accelerator: 'Ctrl+O',
+            click: () => {
+              ipcMain.emit('openFile');
+            },
           },
           {
             label: '&Close',
-            accelerator: 'Ctrl+W',
+            accelerator: 'Ctrl+Shift+W',
             click: () => {
               this.mainWindow.close();
+            },
+          },
+        ],
+      },
+      {
+        label: '&Edit',
+        submenu: [
+          {
+            label: '&Preview current dialogue',
+            accelerator: 'Ctrl+P',
+            click: () => {
+              this.mainWindow.webContents.send('preview');
             },
           },
         ],
@@ -256,29 +288,17 @@ export default class MenuBuilder {
         label: 'Help',
         submenu: [
           {
-            label: 'Learn More',
-            click() {
-              shell.openExternal('https://electronjs.org');
-            },
-          },
-          {
             label: 'Documentation',
             click() {
               shell.openExternal(
-                'https://github.com/electron/electron/tree/main/docs#readme'
+                'https://github.com/mnikn/general-data-manager/blob/main/README.md'
               );
-            },
-          },
-          {
-            label: 'Community Discussions',
-            click() {
-              shell.openExternal('https://www.electronjs.org/community');
             },
           },
           {
             label: 'Search Issues',
             click() {
-              shell.openExternal('https://github.com/electron/electron/issues');
+              shell.openExternal('https://github.com/mnikn/general-data-manager/issues');
             },
           },
         ],
