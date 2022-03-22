@@ -1,9 +1,18 @@
 import PreviewIcon from '@mui/icons-material/Preview';
-import { Button } from '@mui/material';
-import Menu from '@mui/material/Menu';
+import MenuIcon from '@mui/icons-material/Menu';
+import {
+  Button,
+  IconButton,
+  Stack,
+  Menu as MuiMenu,
+  CircularProgress,
+  Alert,
+} from '@mui/material';
+import Menu from './menu';
 import MenuItem from '@mui/material/MenuItem';
 import * as d3 from 'd3';
 import {
+  MouseEvent,
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -25,8 +34,17 @@ import Root from './components/root';
 import Sentence from './components/sentence';
 import SettingsDialog from './components/settings';
 import Context, { GlobalSettings } from './context';
-import { showEdit } from './event';
+import {
+  listenPreviewDialogueJson,
+  listenSaveProject,
+  listenShowProjectSettings,
+  previewDialogueJson,
+  saveProject,
+  showEdit,
+} from './event';
 import DialogueToolbar from './toolbar';
+import DialogueJsonDialog from './json_dialog';
+import { setPriority } from 'os';
 
 const View = ({
   container,
@@ -53,13 +71,14 @@ const View = ({
   const [settingDialogVisible, setSettingDialogVisible] = useState(false);
   const [previewDialogueVisible, setPreviewDialogueVisible] = useState(false);
 
+  const [saving, setSaving] = useState(false);
+
   const [rootData, setRootData] = useState<RootNode>(dialogue);
   const [treeData, setTreeData] = useState<any[]>([]);
   const [linkData, setLinkData] = useState<any[]>([]);
 
-  const [globalSettings, setGlobalSettings] = useState<GlobalSettings>({
-    actors: [],
-  });
+  const [dialogueJsonDialogueVisible, setDialogueJsonDialogueVisible] =
+    useState(false);
 
   const handleContextMenu = (event: any) => {
     event.preventDefault();
@@ -170,6 +189,12 @@ const View = ({
           links.push({
             from: nodeSource,
             target: targetSource,
+            data:
+              (nodeSource.data?.links || []).find(
+                (l) =>
+                  l.sourceId === nodeSource.data.id &&
+                  l.targetId === targetSource.data.id
+              )?.data || {},
           });
           /* targetSource.y = targetSource.y - 30; */
           return diagonal({
@@ -243,26 +268,41 @@ const View = ({
   }, [owner]);
 
   useLayoutEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (owner.editing || !owner.selectingNode) {
+    const onKeyDown = async (e: KeyboardEvent) => {
+      /* e.preventDefault(); */
+      if (owner.editing) {
         return;
       }
-      if (e.code === 'Enter') {
-        doAppendSameLevelNode(e.ctrlKey ? 'branch' : 'sentence');
+
+      if (owner.selectingNode) {
+        if (e.code === 'Enter') {
+          doAppendSameLevelNode(e.ctrlKey ? 'branch' : 'sentence');
+        }
+
+        if (e.code === 'Tab') {
+          doAppendChildNode(e.ctrlKey ? 'branch' : 'sentence');
+        }
+
+        if (e.code === 'Backspace') {
+          doDeleteNode();
+        }
+
+        if (e.code === 'Space') {
+          owner.editing = true;
+          showEdit();
+        }
       }
 
-      if (e.code === 'Tab') {
-        doAppendChildNode(e.ctrlKey ? 'branch' : 'sentence');
+      if (e.code === 'KeyS' && e.ctrlKey && !owner.owner.dataProvider.saving) {
+        saveProject();
       }
 
-      console.log(e.code);
-      if (e.code === 'Backspace') {
-        doDeleteNode();
+      if (e.code === 'KeyP' && e.ctrlKey && !e.shiftKey) {
+        setPreviewDialogueVisible(true);
       }
 
-      if (e.code === 'Space') {
-        owner.editing = true;
-        showEdit();
+      if (e.code === 'KeyP' && e.ctrlKey && e.shiftKey) {
+        previewDialogueJson();
       }
     };
     document.addEventListener('keydown', onKeyDown);
@@ -357,12 +397,59 @@ const View = ({
 
   useEffect(() => {
     owner.owner.dataProvider.currentDialogue = rootData;
-  }, [rootData]);
+  }, [owner, rootData]);
+
+  useEffect(() => {
+    console.log('lle:', linkData);
+    linkData.forEach((item) => {
+      owner.owner.dataProvider.currentDialogue?.iterateChildren((node) => {
+        const nodeLink = node.links.find((l) => {
+          const hasSource =
+            l.source instanceof Node
+              ? l.source.id === item.from?.data?.id
+              : l.source === item.from?.data?.id;
+          const hasTarget =
+            l.target instanceof Node
+              ? l.target.id === item.target?.data?.id
+              : l.target === item.target?.data?.id;
+          return hasSource && hasTarget;
+        });
+        if (nodeLink) {
+          nodeLink.data = item.data;
+        }
+      });
+    });
+  }, [owner, linkData]);
+
+  useEffect(() => {
+    const previewJson = () => {
+      setDialogueJsonDialogueVisible(true);
+    };
+    const saveProject = async () => {
+      setSaving(true);
+      await owner.owner.dataProvider.save();
+      setTimeout(() => {
+        setSaving(false);
+      }, 300);
+    };
+
+    const showProjectSettings = () => {
+      setSettingDialogVisible(true);
+    };
+    const unlistenPreviewJson = listenPreviewDialogueJson(previewJson);
+    const unlistenSaveProject = listenSaveProject(saveProject);
+    const unlistenShowProjectSettigs =
+      listenShowProjectSettings(showProjectSettings);
+    return () => {
+      unlistenPreviewJson();
+      unlistenSaveProject();
+      unlistenShowProjectSettigs();
+    };
+  }, [owner]);
 
   return (
     <Context.Provider
       value={{
-        globalSettings,
         owner,
       }}
     >
@@ -416,6 +503,7 @@ const View = ({
                         owner.editing = true;
                       }}
                       onEditFinish={(confirm, form) => {
+                        owner.editing = false;
                         owner.selectingNode = null;
                         if (confirm) {
                           item.data = form;
@@ -499,19 +587,25 @@ const View = ({
                   key={item.from.data.id + '-' + item.target.data.id}
                   from={item.from}
                   target={item.target}
-                  linkData={data}
+                  linkData={item.data}
                   onChange={(val) => {
-                    data.data = val;
+                    item.data = val;
                     setLinkData((prev) => {
                       return [...prev];
                     });
+                  }}
+                  onEdit={() => {
+                    owner.editing = true;
+                  }}
+                  onEditFinish={() => {
+                    owner.editing = false;
                   }}
                 />
               );
             })}
           </div>
         </div>
-        <Menu
+        <MuiMenu
           open={contextMenu !== null}
           onClose={handleClose}
           anchorReference="anchorPosition"
@@ -560,16 +654,12 @@ const View = ({
                 </MenuItem>
               );
             })}
-        </Menu>
+        </MuiMenu>
 
         {settingDialogVisible && (
           <SettingsDialog
             close={() => {
               setSettingDialogVisible(false);
-            }}
-            data={globalSettings}
-            onSubmit={(val) => {
-              setGlobalSettings(val);
             }}
           />
         )}
@@ -583,23 +673,69 @@ const View = ({
           />
         )}
 
-        <Button
-          variant="contained"
-          startIcon={<PreviewIcon />}
-          size="large"
+        {dialogueJsonDialogueVisible && (
+          <DialogueJsonDialog
+            provider={owner.owner.dataProvider}
+            close={() => {
+              setDialogueJsonDialogueVisible(false);
+            }}
+          />
+        )}
+        <Stack
+          direction="row"
+          spacing={2}
           sx={{
             position: 'absolute',
-            right: '32px',
             top: '32px',
+            width: '100%',
           }}
-          onClick={() => {
-            setPreviewDialogueVisible(true);
-          }}
-          disableFocusRipple
         >
-          Preview Dialogue!
-        </Button>
+          <Menu />
+          <Button
+            variant="contained"
+            startIcon={<PreviewIcon />}
+            size="large"
+            onClick={() => {
+              setPreviewDialogueVisible(true);
+            }}
+            sx={{
+              position: 'absolute',
+              right: '64px',
+            }}
+            disableFocusRipple
+          >
+            Preview Dialogue!
+          </Button>
+        </Stack>
       </div>
+
+      {saving && (
+        <Alert
+          sx={{
+            position: 'fixed',
+            width: '50%',
+            transform: 'translateX(50%)',
+            zIndex: 10,
+            top: '50px',
+            height: '100px',
+            borderRadius: '8px',
+          }}
+          icon={<></>}
+          variant="standard"
+          color="info"
+        >
+          <Stack
+            spacing={2}
+            direction="row"
+            sx={{ alignItems: 'center', height: '100%', width: '100%' }}
+          >
+            <CircularProgress />
+            <div style={{ fontSize: '18px' }}>
+              Saving...Please wait for a while
+            </div>
+          </Stack>
+        </Alert>
+      )}
 
       <DialogueToolbar />
     </Context.Provider>

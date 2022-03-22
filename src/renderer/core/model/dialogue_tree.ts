@@ -3,6 +3,7 @@ import RootNode from './node/root';
 import SentenceNode from './node/sentence';
 import BranchNode from './node/branch';
 import { NodeJsonData } from './node';
+import { Link } from './node/link';
 
 export interface Actor {
   id: string;
@@ -25,8 +26,21 @@ class DialogueTreeModel {
 
   constructor(jsonData: DialogueTreeJson) {
     this.dialogues = jsonData.dialogues.map((item) => {
-      return this.parseJsonData(item) as RootNode;
+      console.log('item: ', item);
+      const dialogue = this.parseJsonData(item) as RootNode;
+      dialogue.iterateChildren((c) => {
+        c.links.forEach((l) => {
+          if (typeof l.source === 'string') {
+            l.source = dialogue.findChildNode(l.source);
+          }
+          if (typeof l.target === 'string') {
+            l.target = dialogue.findChildNode(l.target);
+          }
+        });
+      });
+      return dialogue;
     });
+    this.projectSettings = jsonData.projectSettings;
   }
 
   private parseJsonData(node: NodeJsonData) {
@@ -56,6 +70,11 @@ class DialogueTreeModel {
         if (node.id) {
           instance.id = node.id;
         }
+        instance.links = json.links.map((l) => {
+          const lInstance = new Link(l.sourceId, l.targetId);
+          lInstance.data = l.data;
+          return lInstance;
+        });
         instance.data = {
           ...instance.data,
           ...(json.data as any),
@@ -70,6 +89,11 @@ class DialogueTreeModel {
         if (node.id) {
           instance.id = node.id;
         }
+        instance.links = json.links.map((l) => {
+          const lInstance = new Link(l.sourceId, l.targetId);
+          lInstance.data = l.data;
+          return lInstance;
+        });
         instance.data = {
           ...instance.data,
           ...(json.data as any),
@@ -85,7 +109,7 @@ class DialogueTreeModel {
       dialogues: this.dialogues.map((item) => {
         return item.toRenderJson();
       }),
-      projectSettings: {}
+      projectSettings: {},
     };
   }
 }

@@ -21,6 +21,7 @@ import { listenEdit } from '../event';
 import NodeCard from './node_card';
 import Context from '../context';
 import { getFinalImgPath } from 'renderer/utils/pic';
+import { ProjectSettings } from 'renderer/core/model/dialogue_tree';
 
 const FormDialog = ({
   close,
@@ -32,7 +33,9 @@ const FormDialog = ({
   onSubmit: (form: SentenceNodeJsonData) => void;
 }) => {
   const [form, setForm] = useState<SentenceNodeJsonData>(data);
-  const { globalSettings } = useContext(Context);
+  const { owner } = useContext(Context);
+  const globalSettings = owner?.owner.dataProvider.data
+    .projectSettings as ProjectSettings;
   const handleOnClose = (_: any, reason: string) => {
     if (reason !== 'backdropClick') {
       close();
@@ -40,7 +43,6 @@ const FormDialog = ({
   };
 
   const submit = () => {
-    console.log('form: ', form);
     onSubmit(form);
   };
 
@@ -118,7 +120,10 @@ const FormDialog = ({
                   >
                     <img
                       src={getFinalImgPath(item.pic)}
-                      style={{ height: '24px', marginRight: '4px' }}
+                      style={{
+                        height: '24px',
+                        marginRight: '4px',
+                      }}
                     />
                     {item.actor.name} / {item.id}
                   </MenuItem>

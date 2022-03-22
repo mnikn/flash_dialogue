@@ -1,6 +1,6 @@
 import DataProvider from './data_provider';
+import { ProjectSettings } from './model/dialogue_tree';
 import { RootNodeJsonData } from './model/node/root';
-import { GlobalSettings } from './view_engine/context';
 import ViewProvider from './view_provider';
 
 export interface Config {
@@ -10,7 +10,7 @@ export interface Config {
 
 export interface DialogueTreeJson {
   dialogues: RootNodeJsonData[];
-  projectSettings: GlobalSettings;
+  projectSettings: ProjectSettings;
 }
 
 const DEFAULT_CONFIG: Config = {
@@ -34,8 +34,9 @@ class DialogueTree {
     this.viewProvider.init();
   }
 
-  public load(data: DialogueTreeJson) {
-    this.dataProvider.load(data);
+  public async load(data?: DialogueTreeJson) {
+    console.log(data);
+    await this.dataProvider.load();
     this.viewProvider.render(this.dataProvider.data);
   }
 }

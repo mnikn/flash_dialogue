@@ -1,4 +1,4 @@
-import Node from '.';
+import Node, { NodeJsonData } from '.';
 import RootNode from './root';
 import SentenceNode from './sentence';
 import BranchNode from './branch';
@@ -59,18 +59,21 @@ export const appendChildNode = (
   return newNode;
 };
 
-// static findNodeById(json: any, id: string) {
-//   if (!json) {
-//     return null;
-//   }
-//   if (json.id === id) {
-//     return json;
-//   }
+export const findNodeById = (
+  json: NodeJsonData,
+  id: string
+): NodeJsonData | null => {
+  if (!json) {
+    return null;
+  }
+  if (json.id === id) {
+    return json;
+  }
 
-//   let res: any = null;
-//   json.children.forEach((item: any) => {
-//     res = res || this.findNodeById(item, id);
-//   });
+  let res: NodeJsonData | null = null;
+  json.children.forEach((item) => {
+    res = res || findNodeById(item, id);
+  });
 
-//   return res;
-// }
+  return res;
+};

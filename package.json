@@ -1,6 +1,6 @@
 {
-  "name": "quick-dialogue",
-  "description": "A foundation for scalable desktop apps",
+  "name": "flash-dialogue",
+  "description": "Make your dialogue like flash!",
   "scripts": {
     "build": "concurrently \"npm run build:main\" \"npm run build:renderer\"",
     "build:main": "cross-env NODE_ENV=production TS_NODE_TRANSPILE_ONLY=true webpack --config ./.erb/configs/webpack.config.main.prod.ts",
@@ -30,8 +30,8 @@
     ]
   },
   "build": {
-    "productName": "ElectronReact",
-    "appId": "org.erb.ElectronReact",
+    "productName": "FlashDialogue",
+    "appId": "org.erb.FlashDialogue",
     "asar": true,
     "asarUnpack": "**\\*.{node,dll}",
     "files": [
@@ -205,6 +205,7 @@
     "jest": "^27.4.5",
     "lint-staged": "^12.1.4",
     "mini-css-extract-plugin": "^2.4.5",
+    "monaco-editor-webpack-plugin": "^7.0.1",
     "opencollective-postinstall": "^2.0.3",
     "prettier": "^2.5.1",
     "react-refresh": "^0.11.0",
@@ -239,9 +240,11 @@
     "eventemitter3": "^4.0.7",
     "history": "^5.2.0",
     "mind-elixir": "^0.19.1",
+    "monaco-editor": "^0.31.1",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
     "react-dynamic-material-form": "^0.1.0",
+    "react-monaco-editor": "^0.47.0",
     "react-router-dom": "^6.2.1",
     "xmind": "^2.2.24"
   },

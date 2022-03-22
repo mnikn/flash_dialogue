@@ -1,6 +1,6 @@
-import { Stack, Typography } from "@mui/material";
-import { SentenceData } from "renderer/core/model/node/sentence";
-import { getFinalImgPath } from "renderer/utils/pic";
+import { Stack, Typography } from '@mui/material';
+import { SentenceData } from 'renderer/core/model/node/sentence';
+import { getFinalImgPath } from 'renderer/utils/pic';
 
 const Sentence = ({ data }: { data: SentenceData }) => {
   const direction =
@@ -34,6 +34,7 @@ const Sentence = ({ data }: { data: SentenceData }) => {
               width: '100%',
               backgroundColor: '#0d2b45',
               borderRadius: '18px',
+              userSelect: 'none',
             }}
           />
         </div>

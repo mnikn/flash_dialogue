@@ -14,22 +14,18 @@ import {
   Tabs,
   TextField,
 } from '@mui/material';
-import { useState } from 'react';
+import { useContext, useState } from 'react';
 import { SchemaConfigEditor } from 'react-dynamic-material-form';
 import DeleteIcon from '@mui/icons-material/Delete';
-import { GlobalSettings } from '../context';
+import Context from '../context';
+import { ProjectSettings } from 'renderer/core/model/dialogue_tree';
 
-const SettingsDialog = ({
-  close,
-  data,
-  onSubmit,
-}: {
-  close: () => void;
-  data: GlobalSettings;
-  onSubmit: (val: GlobalSettings) => void;
-}) => {
+const SettingsDialog = ({ close }: { close: () => void }) => {
   const [currentTab, setCurrentTab] = useState(0);
-  const [globalSettings, setGlobalSettings] = useState<GlobalSettings>(data);
+  const { owner } = useContext(Context);
+  const [globalSettings, setGlobalSettings] = useState<ProjectSettings>(
+    owner?.owner.dataProvider.data.projectSettings as ProjectSettings
+  );
   const handleOnClose = (_: any, reason: string) => {
     if (reason !== 'backdropClick') {
       close();
@@ -37,7 +33,9 @@ const SettingsDialog = ({
   };
 
   const submit = () => {
-    onSubmit(globalSettings);
+    if (owner) {
+      owner.owner.dataProvider.data.projectSettings = globalSettings;
+    }
   };
 
   return (

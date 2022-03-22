@@ -5,6 +5,7 @@ export interface NodeJsonData {
   id?: string;
   type: string;
   children: NodeJsonData[];
+  links: { sourceId: string; targetId: string; data: { [key: string]: any } }[];
   data: {
     [key: string]: any;
   };
@@ -65,6 +66,10 @@ class Node<T> {
 
   get links(): Link[] {
     return this._links;
+  }
+
+  set links(val: Link[]) {
+    this._links = val;
   }
 
   public toRenderJson(): any {

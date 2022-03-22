@@ -1,14 +1,25 @@
-import { Stack, Typography } from "@mui/material";
-import { BranchData } from "renderer/core/model/node/branch";
-import { getFinalImgPath } from "renderer/utils/pic";
+import { Button, Stack, Typography } from '@mui/material';
+import { BranchData } from 'renderer/core/model/node/branch';
+import { NodeLinkJsonData } from 'renderer/core/model/node/link';
+import { getFinalImgPath } from 'renderer/utils/pic';
 
-const Branch = ({ data }: { data: BranchData }) => {
+const Branch = ({
+  data,
+  linkData,
+  onOptionClick,
+}: {
+  data: BranchData;
+  linkData: NodeLinkJsonData[];
+  onOptionClick: (link: NodeLinkJsonData) => void;
+}) => {
   const direction =
     data.actorPosition === 'center'
       ? 'column'
       : data.actorPosition === 'left'
       ? 'row'
       : 'row-reverse';
+
+  console.log('prview b data: ', data, linkData);
   return (
     <Stack
       direction={direction}
@@ -34,13 +45,14 @@ const Branch = ({ data }: { data: BranchData }) => {
               width: '100%',
               backgroundColor: '#0d2b45',
               borderRadius: '18px',
+              userSelect: 'none',
             }}
           />
         </div>
       )}
 
-      <div
-        style={{
+      <Stack
+        sx={{
           background: '#7145FF',
           flexGrow: 1,
           alignSelf: 'normal',
@@ -51,6 +63,8 @@ const Branch = ({ data }: { data: BranchData }) => {
           boxShadow:
             'rgba(0, 0, 0, 0.19) 0px 10px 20px, rgba(0, 0, 0, 0.23) 0px 6px 6px',
         }}
+        direction="column"
+        spacing={2}
       >
         <Typography
           variant="h6"
@@ -62,7 +76,28 @@ const Branch = ({ data }: { data: BranchData }) => {
         >
           {data.content}
         </Typography>
-      </div>
+
+        <Stack direction="column" spacing={1}>
+          {linkData.map((l) => {
+            return (
+              <Button
+                variant="contained"
+                sx={{
+                  backgroundColor: '#ffaa5e',
+                  '&:hover': {
+                    backgroundColor: '#ffd4a3',
+                  },
+                  borderRadius: '8px',
+                  height: '40px',
+                }}
+                onClick={() => onOptionClick(l)}
+              >
+                {l.data.optionName}
+              </Button>
+            );
+          })}
+        </Stack>
+      </Stack>
     </Stack>
   );
 };

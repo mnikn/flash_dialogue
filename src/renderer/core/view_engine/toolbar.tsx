@@ -29,6 +29,7 @@ const DialogueToolbar = () => {
           {owner?.owner.dataProvider.data.dialogues.map((dialogue) => {
             return (
               <Box
+                key={dialogue.id}
                 sx={{
                   background:
                     owner.owner.dataProvider.currentDialogue === dialogue
@@ -46,6 +47,7 @@ const DialogueToolbar = () => {
                   '&:hover': {
                     background: '#d08159',
                   },
+                  userSelect: 'none',
                 }}
                 onClick={() => {
                   owner.owner.dataProvider.currentDialogue = dialogue;

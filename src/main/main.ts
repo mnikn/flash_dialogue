@@ -91,6 +91,30 @@ ipcMain.on('saveJsonFile', async (event, arg = {}) => {
   }
 });
 
+ipcMain.on('selectFolder', async (event, arg = {}) => {
+  if (!mainWindow) {
+    return;
+  }
+  const res = dialog.showOpenDialogSync(mainWindow, {
+    properties: ['openDirectory'],
+  });
+  event.reply('selectFolder', res);
+});
+
+ipcMain.on('readFolder', async (event, arg = {}) => {
+  if (!mainWindow) {
+    return;
+  }
+
+  try {
+    fs.accessSync(arg.path);
+  } catch (err) {
+    fs.mkdirSync(arg.path, { recursive: true });
+  }
+  const res = fs.readdirSync(arg.path);
+  event.reply('readFolder', res);
+});
+
 // ipcMain.on('saveJsonFileDialog', async (event, arg) => {
 //   if (!mainWindow) {
 //     return;
@@ -152,6 +176,7 @@ const createWindow = async () => {
     width: 1024,
     height: 728,
     icon: getAssetPath('icon.png'),
+    autoHideMenuBar: true,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       webSecurity: false,

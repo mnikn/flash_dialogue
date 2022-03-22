@@ -9,16 +9,20 @@ import {
 import { useCallback, useLayoutEffect, useRef, useState } from 'react';
 import { NodeJsonData } from 'renderer/core/model/node';
 import { BranchData } from 'renderer/core/model/node/branch';
+import { findNodeById } from 'renderer/core/model/node/factory';
+import { NodeLinkJsonData } from 'renderer/core/model/node/link';
 import { RootNodeJsonData } from 'renderer/core/model/node/root';
 import { SentenceData } from 'renderer/core/model/node/sentence';
 import Branch from './branch';
 import Sentence from './sentence';
 
 class DialogueProcessor {
-  public currentNode: NodeJsonData;
+  public currentNode: NodeJsonData | null;
+  private rootNode: NodeJsonData;
 
   constructor(root: RootNodeJsonData) {
     this.currentNode = root;
+    this.rootNode = root;
   }
 
   public next(): NodeJsonData | null {
@@ -27,6 +31,17 @@ class DialogueProcessor {
     }
 
     const nextNode = this.currentNode.children[0];
+    this.currentNode = nextNode;
+    return nextNode;
+  }
+
+  public jumpToTargetNode(link: NodeLinkJsonData): NodeJsonData | null {
+    console.log('ll: ', link);
+    if (!this.currentNode || !link.targetId) {
+      return null;
+    }
+
+    const nextNode = findNodeById(this.rootNode, link.targetId);
     this.currentNode = nextNode;
     return nextNode;
   }
@@ -51,30 +66,32 @@ const PreviewDialogue = ({
     }
   };
 
-  const next = useCallback(() => {
-    if (finished) {
-      return;
-    }
+  const next = useCallback(
+    (link?: NodeLinkJsonData) => {
+      if (
+        finished ||
+        (dialogueProcessorRef.current.currentNode?.type === 'branch' && !link)
+      ) {
+        return;
+      }
 
-    const node = dialogueProcessorRef.current.next();
-    if (!node) {
-      setFinished(true);
-      return;
-    }
-    setChatList((prev) => {
-      return [...prev, node];
-    });
-  }, [finished]);
+      let node: NodeJsonData | null = null;
+      if (link) {
+        node = dialogueProcessorRef.current.jumpToTargetNode(link);
+      } else {
+        node = dialogueProcessorRef.current.next();
+      }
 
-  useLayoutEffect(() => {
-    if (!contentDomRef.current) {
-      return;
-    }
-
-    return () => {
-      contentDomRef.current?.removeEventListener('click', next);
-    };
-  }, []);
+      if (!node) {
+        setFinished(true);
+        return;
+      }
+      setChatList((prev) => {
+        return [...prev, node];
+      });
+    },
+    [finished]
+  );
 
   const onDomMounted = (dom: HTMLDivElement) => {
     if (!dom) {
@@ -82,7 +99,9 @@ const PreviewDialogue = ({
     }
 
     contentDomRef.current = dom;
-    contentDomRef.current.addEventListener('click', next);
+    contentDomRef.current.addEventListener('click', () => {
+      next();
+    });
   };
 
   return (
@@ -121,7 +140,14 @@ const PreviewDialogue = ({
         <Stack spacing={4} direction="column" sx={{ alignItems: 'center' }}>
           {chatList.map((item) => {
             if (item.type === 'branch') {
-              return <Branch key={item.id} data={item.data as BranchData} />;
+              return (
+                <Branch
+                  key={item.id}
+                  data={item.data as BranchData}
+                  linkData={item.links}
+                  onOptionClick={next}
+                />
+              );
             }
             return <Sentence key={item.id} data={item.data as SentenceData} />;
           })}

@@ -5,17 +5,9 @@ contextBridge.exposeInMainWorld('electron', {
     myPing() {
       ipcRenderer.send('ipc-example', 'ping');
     },
-    // saveJsonFile() {
-    // },
     readJsonFile(arg) {
       return new Promise((resolve) => {
         ipcRenderer.once('readJsonFile', (_, res) => {
-          // if (res.arg.action === arg.action) {
-          //   if (callback) {
-          //     callback(res);
-          //   }
-          //   resolve(res);
-          // }
           resolve(res);
         });
         ipcRenderer.send('readJsonFile', arg);
@@ -24,15 +16,25 @@ contextBridge.exposeInMainWorld('electron', {
     saveJsonFile(arg) {
       return new Promise((resolve) => {
         ipcRenderer.once('saveJsonFile', (_, res) => {
-          // if (res.arg.action === arg.action) {
-          //   if (callback) {
-          //     callback(res);
-          //   }
-          //   resolve(res);
-          // }
           resolve(res);
         });
         ipcRenderer.send('saveJsonFile', arg);
+      });
+    },
+    selectFolder(arg) {
+      return new Promise((resolve) => {
+        ipcRenderer.once('selectFolder', (_, res) => {
+          resolve(res);
+        });
+        ipcRenderer.send('selectFolder', arg);
+      });
+    },
+    readFolder(arg) {
+      return new Promise((resolve) => {
+        ipcRenderer.once('readFolder', (_, res) => {
+          resolve(res);
+        });
+        ipcRenderer.send('readFolder', arg);
       });
     },
     on(channel, func) {

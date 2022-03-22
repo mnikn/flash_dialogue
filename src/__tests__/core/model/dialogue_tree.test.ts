@@ -11,8 +11,12 @@ describe('model dialogue tree', () => {
           },
           type: 'root',
           children: [],
+          links: [],
         },
       ],
+      projectSettings: {
+        actors: [],
+      },
     };
     const instance = new DialogueTree(jsonData);
     const rootA = instance.dialogues[0];
@@ -33,6 +37,7 @@ describe('model dialogue tree', () => {
               },
               type: 'sentence',
               children: [],
+              links: [],
             },
             {
               data: {
@@ -40,10 +45,15 @@ describe('model dialogue tree', () => {
               },
               type: 'sentence',
               children: [],
+              links: [],
             },
           ],
+          links: [],
         },
       ],
+      projectSettings: {
+        actors: [],
+      },
     };
     const instanceB = new DialogueTree(jsonDataB);
     expect(instanceB.dialogues[0].children[0].data?.content).toBe('Child 1');
@@ -70,8 +80,10 @@ describe('model dialogue tree', () => {
                   },
                   type: 'sentence',
                   children: [],
+                  links: [],
                 },
               ],
+              links: [],
             },
             {
               data: {
@@ -79,10 +91,15 @@ describe('model dialogue tree', () => {
               },
               type: 'sentence',
               children: [],
+              links: [],
             },
           ],
+          links: [],
         },
       ],
+      projectSettings: {
+        actors: [],
+      },
     };
     const instanceC = new DialogueTree(jsonDataC);
     expect(instanceC.dialogues[0].children[0].children[0].data?.content).toBe(
@@ -110,8 +127,10 @@ describe('model dialogue tree', () => {
                   },
                   type: 'sentence',
                   children: [],
+                  links: [],
                 },
               ],
+              links: [],
             },
             {
               data: {
@@ -119,8 +138,11 @@ describe('model dialogue tree', () => {
               },
               type: 'sentence',
               children: [],
+
+              links: [],
             },
           ],
+          links: [],
         },
         {
           data: {
@@ -140,8 +162,10 @@ describe('model dialogue tree', () => {
                   },
                   type: 'sentence',
                   children: [],
+                  links: [],
                 },
               ],
+              links: [],
             },
             {
               data: {
@@ -149,10 +173,16 @@ describe('model dialogue tree', () => {
               },
               type: 'sentence',
               children: [],
+
+              links: [],
             },
           ],
+          links: [],
         },
       ],
+      projectSettings: {
+        actors: [],
+      },
     };
     const instanceD = new DialogueTree(jsonDataD);
     expect(instanceD.dialogues[1].children[0].children[0].data?.content).toBe(

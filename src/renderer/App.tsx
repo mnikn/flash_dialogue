@@ -17,11 +17,49 @@ export default function App() {
           type: 'root',
           children: [
             {
+              id: 'branch1',
               data: {
-                content: 'This is a test',
+                content: 'This is a test?',
               },
-              type: 'sentence',
-              children: [],
+              type: 'branch',
+              children: [
+                {
+                  id: 'bs1',
+                  type: 'sentence',
+                  data: {
+                    content: 'Good',
+                  },
+                  children: [],
+                  links: [],
+                },
+                {
+                  id: 'bs2',
+                  type: 'sentence',
+                  data: {
+                    content: 'Bad',
+                  },
+                  children: [],
+                  links: [],
+                },
+              ],
+              links: [
+                {
+                  sourceId: 'branch1',
+                  targetId: 'bs1',
+                  data: {
+                    optionId: 'true',
+                    optionName: 'True',
+                  },
+                },
+                {
+                  sourceId: 'branch1',
+                  targetId: 'bs2',
+                  data: {
+                    optionId: 'false',
+                    optionName: 'False',
+                  },
+                },
+              ],
             },
           ],
         },

@@ -1,5 +1,5 @@
 import Eventemitter from 'eventemitter3';
-import { RECENT_FILE_PATH } from 'renderer/constants/storage';
+import { RECENT_PROJECT_PATH } from 'renderer/constants/storage';
 import DialogueTree, { DialogueTreeJson } from '.';
 import { createLogger } from '../utils/logger';
 import DialogueTreeModel from './model/dialogue_tree';
@@ -20,6 +20,8 @@ class DataProvider {
     },
   });
 
+  private _saving = false;
+
   constructor(owner: DialogueTree) {
     this.owner = owner;
     this.save = this.save.bind(this);
@@ -30,7 +32,7 @@ class DataProvider {
   }
 
   set currentDialogue(val: RootNode | null) {
-    if (this._currentDialogue !== val) {
+    if (this._currentDialogue?.id !== val?.id) {
       this.event.emit('change:currentDialogue', val);
     }
     this._currentDialogue = val;
@@ -43,24 +45,79 @@ class DataProvider {
 
   public init() {
     logger.log('init');
-    window.electron.ipcRenderer.on('saveFile', this.save);
+    // window.electron.ipcRenderer.on('saveFile', this.save);
   }
 
-  public load(data: DialogueTreeJson) {
-    this.data = new DialogueTreeModel(data);
+  public async load(data?: DialogueTreeJson) {
+    if (data) {
+      this.data = new DialogueTreeModel(data);
+    } else {
+      // get data from recent project
+      const projectPath = localStorage.getItem(RECENT_PROJECT_PATH);
+      const settingPath = `${projectPath}\\settings.json`;
+      const res = await window.electron.ipcRenderer.readJsonFile({
+        path: settingPath,
+      });
+
+      const plainData: DialogueTreeJson = {
+        dialogues: [],
+        projectSettings: {
+          actors: [],
+        },
+      };
+      plainData.projectSettings = JSON.parse(res.res);
+
+      const dialogueFolder = `${projectPath}\\dialogues`;
+      const files = await window.electron.ipcRenderer.readFolder({
+        path: dialogueFolder,
+      });
+
+      for (const f of files) {
+        const path = `${dialogueFolder}\\${f}`;
+        const dialogueDataRes = await window.electron.ipcRenderer.readJsonFile({
+          path,
+        });
+        plainData.dialogues.push(JSON.parse(dialogueDataRes.res));
+      }
+      if (plainData.dialogues.length <= 0) {
+        plainData.dialogues.push(
+          new RootNode({
+            title: 'Dialogue 1',
+          }).toRenderJson()
+        );
+      }
+      this.data = new DialogueTreeModel(plainData);
+    }
+
     this.currentDialogue = this.data.dialogues[0];
   }
 
   public async save() {
-    window.electron.ipcRenderer
-      .saveJsonFile({
-        data: JSON.stringify(this.data?.toJson(), null, 2),
-      })
-      .then((res: any) => {
-        if (res.path) {
-          localStorage.setItem(RECENT_FILE_PATH, res.path);
-        }
+    this._saving = true;
+
+    let projectPath = localStorage.getItem(RECENT_PROJECT_PATH);
+    if (!projectPath) {
+      const res = await window.electron.ipcRenderer.selectFolder();
+      localStorage.setItem(RECENT_PROJECT_PATH, res[0]);
+      projectPath = res[0];
+    }
+
+    const settingPath = `${projectPath}\\settings.json`;
+    await window.electron.ipcRenderer.saveJsonFile({
+      data: JSON.stringify(this.data.projectSettings, null, 2),
+      path: settingPath,
+    });
+
+    const dialogueFolder = `${projectPath}\\dialogues`;
+    this.data.dialogues.forEach(async (dialogue) => {
+      const path = `${dialogueFolder}\\dialogue_${dialogue.data?.title}.json`;
+      await window.electron.ipcRenderer.saveJsonFile({
+        data: JSON.stringify(dialogue.toRenderJson(), null, 2),
+        path: path,
       });
+    });
+
+    this._saving = false;
   }
 
   public async createNewDialogue() {
@@ -71,6 +128,10 @@ class DataProvider {
       title: `Dialogue ${this.data.dialogues.length}`,
     };
     this.currentDialogue = newDialogue;
+  }
+
+  get saving(): boolean {
+    return this._saving;
   }
 }
 

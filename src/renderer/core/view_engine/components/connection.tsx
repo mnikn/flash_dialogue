@@ -160,6 +160,13 @@ const FormDialog = ({
           fullWidth
           size="small"
           required
+          value={form.optionId || ''}
+          onChange={(e) => {
+            form.optionId = e.target.value;
+            setForm((prev) => {
+              return { ...prev };
+            });
+          }}
         />
       </Grid>
       <Grid item xs={6}>
@@ -170,6 +177,13 @@ const FormDialog = ({
           fullWidth
           size="small"
           required
+          value={form.optionName || ''}
+          onChange={(e) => {
+            form.optionName = e.target.value;
+            setForm((prev) => {
+              return { ...prev };
+            });
+          }}
         />
       </Grid>
 
@@ -236,21 +250,31 @@ const Connection = ({
   target,
   linkData,
   onChange,
+  onEdit,
+  onEditFinish,
 }: {
   from: any;
   target: any;
   linkData: any;
   onChange: (val: LinkData) => void;
+  onEdit?: () => void;
+  onEditFinish?: () => void;
 }) => {
   const midpoint = [(from.x + target.x) / 2 - 55, (from.y + target.y) / 2 - 15];
 
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const showEditDialog = () => {
     setEditDialogOpen(true);
+    if (onEdit) {
+      onEdit();
+    }
   };
 
   const closeEditDialog = () => {
     setEditDialogOpen(false);
+    if (onEditFinish) {
+      onEditFinish();
+    }
   };
 
   return (
@@ -273,7 +297,7 @@ const Connection = ({
       {editDialogOpen && (
         <FormDialog
           close={closeEditDialog}
-          data={linkData.data}
+          data={linkData}
           source={from.data}
           onSubmit={(data) => {
             onChange(data);

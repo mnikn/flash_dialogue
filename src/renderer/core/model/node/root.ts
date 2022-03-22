@@ -12,7 +12,7 @@ export interface RootNodeJsonData extends NodeJsonData {
 }
 
 export default class RootNode extends Node<RootData> {
-  constructor(data?: any, id?: string) {
+  constructor(data?: RootData, id?: string) {
     super(data, id);
     if (!data) {
       this.data = {

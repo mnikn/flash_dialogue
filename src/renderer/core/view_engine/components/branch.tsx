@@ -16,6 +16,7 @@ import {
   Typography,
 } from '@mui/material';
 import { useContext, useEffect, useState } from 'react';
+import { ProjectSettings } from 'renderer/core/model/dialogue_tree';
 import { BranchNodeJsonData } from 'renderer/core/model/node/branch';
 import { getFinalImgPath } from 'renderer/utils/pic';
 import Context from '../context';
@@ -32,7 +33,9 @@ const FormDialog = ({
   onSubmit: (form: BranchNodeJsonData) => void;
 }) => {
   const [form, setForm] = useState<BranchNodeJsonData>(data);
-  const { globalSettings } = useContext(Context);
+  const { owner } = useContext(Context);
+  const globalSettings = owner?.owner.dataProvider.data
+    .projectSettings as ProjectSettings;
   const handleOnClose = (_: any, reason: string) => {
     if (reason !== 'backdropClick') {
       close();
