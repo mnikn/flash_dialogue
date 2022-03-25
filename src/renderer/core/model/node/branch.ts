@@ -1,4 +1,5 @@
 import Node, { NodeJsonData } from '.';
+import { Link } from './link';
 
 export interface BranchData {
   content: string;
@@ -34,5 +35,16 @@ export default class BranchNode extends Node<BranchData> {
       ...baseJson,
       type: 'branch',
     };
+  }
+
+  protected createLink(target: Node<any>): Link {
+    const instance = new Link(this, target);
+    instance.data = {
+      optionName: '',
+      optionId: '',
+      hiddenOptionFlags: [],
+      disableOptionFlags: [],
+    };
+    return instance;
   }
 }

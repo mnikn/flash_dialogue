@@ -37,6 +37,14 @@ contextBridge.exposeInMainWorld('electron', {
         ipcRenderer.send('readFolder', arg);
       });
     },
+    deleteFolderFiles(arg) {
+      return new Promise((resolve) => {
+        ipcRenderer.once('deleteFolderFiles', (_, res) => {
+          resolve(res);
+        });
+        ipcRenderer.send('deleteFolderFiles', arg);
+      });
+    },
     on(channel, func) {
       ipcRenderer.on(channel, (event, ...args) => func(...args));
     },

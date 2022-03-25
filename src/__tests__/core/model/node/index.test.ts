@@ -41,6 +41,7 @@ describe('model node', () => {
     childB.children = [childBB];
     root.deleteChildNode(childBB.id);
     expect(childB.children.length).toBe(0);
+    expect(childB.links.length).toBe(0);
   });
 
   it('should create link correct', () => {

@@ -26,7 +26,6 @@ class ViewEngine {
   }
 
   public stop() {
-    console.log(this.owner.containerElement);
     unmountComponentAtNode(this.owner.containerElement as HTMLDivElement);
     this.rendering = false;
   }

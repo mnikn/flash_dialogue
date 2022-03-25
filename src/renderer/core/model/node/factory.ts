@@ -14,9 +14,6 @@ export const appendSameLevelNode = (
       !sourceNode.parent
     )
   ) {
-    // if (sourceNode.parent instanceof SentenceNode) {
-    //   return null;
-    // }
     let newNode: Node<any>;
     switch (type) {
       case 'sentence': {
@@ -76,4 +73,13 @@ export const findNodeById = (
   });
 
   return res;
+};
+
+export const findLink = (
+  root: NodeJsonData,
+  sourceId: string,
+  targetId: string
+): { [key: string]: any } | null => {
+  const source = findNodeById(root, sourceId);
+  return source?.links.find((l) => l.sourceId === sourceId && l.targetId === targetId) || null;
 };

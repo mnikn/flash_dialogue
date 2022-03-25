@@ -16,19 +16,20 @@ export interface Actor {
 
 export interface ProjectSettings {
   actors: Actor[];
+  i18n: string[];
 }
 
 class DialogueTreeModel {
   public dialogues: RootNode[] = [];
   public projectSettings: ProjectSettings = {
     actors: [],
+    i18n: [],
   };
 
   constructor(jsonData: DialogueTreeJson) {
     this.dialogues = jsonData.dialogues.map((item) => {
-      console.log('item: ', item);
       const dialogue = this.parseJsonData(item) as RootNode;
-      dialogue.iterateChildren((c) => {
+      dialogue.iterate((c) => {
         c.links.forEach((l) => {
           if (typeof l.source === 'string') {
             l.source = dialogue.findChildNode(l.source);
@@ -40,7 +41,11 @@ class DialogueTreeModel {
       });
       return dialogue;
     });
-    this.projectSettings = jsonData.projectSettings;
+
+    this.projectSettings = {
+      ...this.projectSettings,
+      ...jsonData.projectSettings,
+    };
   }
 
   private parseJsonData(node: NodeJsonData) {
@@ -57,6 +62,11 @@ class DialogueTreeModel {
         ...instance.data,
         ...(node.data as any),
       };
+      instance.links = json.links.map((l) => {
+        const lInstance = new Link(l.sourceId, l.targetId);
+        lInstance.data = l.data;
+        return lInstance;
+      });
       return instance;
     }
 

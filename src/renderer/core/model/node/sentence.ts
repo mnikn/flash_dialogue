@@ -1,4 +1,5 @@
 import Node, { NodeJsonData } from '../node';
+import { Link } from './link';
 
 export interface SentenceData {
   content: string;
@@ -45,6 +46,14 @@ export default class SentenceNode extends Node<SentenceData> {
   //     return item;
   //   });
   // }
+
+  protected createLink(target: Node<any>): Link {
+    const instance = new Link(this, target);
+    instance.data = {
+      transferFlags: [],
+    };
+    return instance;
+  }
 
   public toRenderJson(): SentenceNodeJsonData {
     let baseJson = super.toRenderJson();

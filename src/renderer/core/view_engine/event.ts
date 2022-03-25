@@ -2,6 +2,7 @@ import Eventemitter from 'eventemitter3';
 
 export enum EventType {
   SHOW_EDID = 'show_edit',
+  SHOW_DIALOGUE_SETTINGS = 'show_dialogue_settings',
   SAVE_PROJECT = 'save_project',
   NEW_PROJECT = 'new_project',
   OPEN_PROJECT = 'open_project',
@@ -43,4 +44,12 @@ export const showProjectSettings = () => {
 export const listenShowProjectSettings = (callback: () => void) => {
   eventemitter.on(EventType.SHOW_SETTINGS, callback);
   return () => eventemitter.off(EventType.SHOW_SETTINGS, callback);
+};
+
+export const showDialogueSettings = () => {
+  eventemitter.emit(EventType.SHOW_DIALOGUE_SETTINGS);
+};
+export const listenShowDialogueSettings = (callback: () => void) => {
+  eventemitter.on(EventType.SHOW_DIALOGUE_SETTINGS, callback);
+  return () => eventemitter.off(EventType.SHOW_DIALOGUE_SETTINGS, callback);
 };

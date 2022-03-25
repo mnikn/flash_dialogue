@@ -1,10 +1,39 @@
-import { AppBar, IconButton, Stack, Toolbar, Box } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
-import { useContext } from 'react';
+import {
+  AppBar,
+  Box,
+  IconButton,
+  Menu,
+  Stack,
+  Toolbar,
+  MenuItem,
+} from '@mui/material';
+import { useContext, useState } from 'react';
 import Context from './context';
+import { showDialogueSettings, showEdit } from './event';
 
 const DialogueToolbar = () => {
   const { owner } = useContext(Context);
+  const [contextMenu, setContextMenu] = useState<any>(null);
+
+  const handleContextMenu = (event: any) => {
+    event.preventDefault();
+    setContextMenu(
+      contextMenu === null
+        ? {
+            mouseX: event.clientX - 2,
+            mouseY: event.clientY - 4,
+          }
+        : // repeated contextmenu when it is already open closes it with Chrome 84 on Ubuntu
+          // Other native context menus might behave different.
+          // With this behavior we prevent contextmenu from the backdrop to re-locale existing context menus.
+          null
+    );
+  };
+
+  const closeContextMenu = () => {
+    setContextMenu(null);
+  };
 
   return (
     <AppBar
@@ -24,7 +53,7 @@ const DialogueToolbar = () => {
         <Stack
           direction="row"
           spacing={2}
-          sx={{ marginLeft: '32px', height: '64px' }}
+          sx={{ marginLeft: '32px', height: '64px', overflow: 'auto' }}
         >
           {owner?.owner.dataProvider.data.dialogues.map((dialogue) => {
             return (
@@ -52,11 +81,54 @@ const DialogueToolbar = () => {
                 onClick={() => {
                   owner.owner.dataProvider.currentDialogue = dialogue;
                 }}
+                onContextMenu={handleContextMenu}
               >
                 {dialogue.data?.title}
               </Box>
             );
           })}
+          <Menu
+            open={contextMenu !== null}
+            onClose={closeContextMenu}
+            anchorReference="anchorPosition"
+            anchorPosition={
+              contextMenu !== null
+                ? { top: contextMenu.mouseY, left: contextMenu.mouseX }
+                : undefined
+            }
+          >
+            <MenuItem
+              onClick={() => {
+                if (!owner) {
+                  return;
+                }
+                owner.selectingNode = owner.owner.dataProvider.currentDialogue;
+                showDialogueSettings();
+                closeContextMenu();
+              }}
+            >
+              Settings
+            </MenuItem>
+            <MenuItem
+              onClick={() => {
+                if (!owner) {
+                  return;
+                }
+                owner.owner.dataProvider.data.dialogues =
+                  owner.owner.dataProvider.data.dialogues.filter(
+                    (node) =>
+                      node.id !== owner.owner.dataProvider.currentDialogue?.id
+                  );
+                owner.owner.dataProvider.currentDialogue =
+                  owner.owner.dataProvider.data.dialogues[
+                    owner.owner.dataProvider.data.dialogues.length - 1
+                  ] || null;
+                closeContextMenu();
+              }}
+            >
+              Delete
+            </MenuItem>
+          </Menu>
         </Stack>
       </Toolbar>
     </AppBar>

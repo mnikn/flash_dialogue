@@ -10,11 +10,13 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  Divider,
   FormControlLabel,
   FormGroup,
   Grid,
   Stack,
   TextField,
+  Typography,
 } from '@mui/material';
 import { useEffect, useState } from 'react';
 import { LinkData } from 'renderer/core/model/node/link';
@@ -24,18 +26,19 @@ const FlagItem = ({
   onChange,
   onDelete,
 }: {
-  item: { flag: string; match: boolean };
-  onChange: (val: { flag: string; match: boolean }) => void;
+  item: { id: string; match: boolean };
+  onChange: (val: { id: string; match: boolean }) => void;
   onDelete: () => void;
 }) => (
   <Grid item xs={6}>
-    <Stack spacing={0} direction="row" sx={{ alignItems: 'center' }}>
+    <Stack spacing={1} direction="row" sx={{ alignItems: 'center' }}>
       <FormGroup>
         <FormControlLabel
           control={
             <Checkbox
               checked={item.match}
               value={item.match}
+              size="small"
               onChange={(e) => {
                 onChange({ ...item, match: e.target.checked });
               }}
@@ -48,11 +51,12 @@ const FlagItem = ({
         margin="dense"
         label="Flag"
         type="text"
+        size="small"
         fullWidth
         required
-        value={item.flag}
+        value={item.id}
         onChange={(e: any) => {
-          onChange({ ...item, flag: e.target.value });
+          onChange({ ...item, id: e.target.value });
         }}
       />
       <DeleteItcon sx={{ cursor: 'pointer' }} onClick={onDelete} />
@@ -260,7 +264,10 @@ const Connection = ({
   onEdit?: () => void;
   onEditFinish?: () => void;
 }) => {
-  const midpoint = [(from.x + target.x) / 2 - 55, (from.y + target.y) / 2 - 15];
+  const midpoint = [
+    (from.x + target.x) / 2 - (from.data.type === 'branch' ? 120 : 55),
+    (from.y + target.y) / 2 - (from.data.type === 'branch' ? 70 : 15),
+  ];
 
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const showEditDialog = () => {
@@ -284,15 +291,52 @@ const Connection = ({
         position: 'absolute',
       }}
     >
-      <SettingsIcon
-        sx={{
-          color: '#ffd4a3',
-          cursor: 'pointer',
-          fontSize: '48px',
-          pointerEvents: 'initial',
-        }}
-        onClick={showEditDialog}
-      />
+      <Stack spacing={1} sx={{ alignItems: 'center' }}>
+        {from.data.type === 'branch' && (
+          <Stack
+            sx={{
+              alignItems: 'center',
+              backgroundColor: '#ffaa5e',
+              padding: '4px',
+              borderRadius: '24px',
+              width: '150px',
+              height: '50px',
+            }}
+          >
+            <Typography
+              variant="h6"
+              sx={{
+                userSelect: 'none',
+                color: '#0d2b45',
+                textAlign: 'center',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                width: '100%',
+                lineHeight: 1.2,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+              }}
+            >
+              <div>{linkData.optionId}</div>
+              {linkData.optionName && linkData.optionId && (
+                <Divider sx={{ backgroundColor: '#0d2b45', width: '80%' }} />
+              )}
+              <div>{linkData.optionName}</div>
+            </Typography>
+          </Stack>
+        )}
+        <SettingsIcon
+          sx={{
+            color: '#ffd4a3',
+            cursor: 'pointer',
+            fontSize: '48px',
+            pointerEvents: 'initial',
+          }}
+          onClick={showEditDialog}
+        />
+      </Stack>
 
       {editDialogOpen && (
         <FormDialog

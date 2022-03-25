@@ -6,6 +6,11 @@ import ViewEngine from './view_engine';
 import RootNode from './model/node/root';
 import Node from './model/node';
 
+interface DragTarget {
+  node: Node<any>;
+  type: 'child' | 'parent';
+}
+
 const logger = createLogger('view-provider');
 class ViewProvider {
   public owner: DialogueTree;
@@ -14,6 +19,12 @@ class ViewProvider {
   private _editing: boolean = false;
 
   private _selectingNode: Node<any> | null = null;
+
+  private _draging: boolean = false;
+
+  private _dragTarget: DragTarget | null = null;
+
+  private _zoom: number = 1;
 
   public event = new Eventemitter();
 
@@ -46,9 +57,6 @@ class ViewProvider {
       logger.error('container element not found!');
       return;
     }
-    // model.dialogues.forEach((dialogue) => {
-    //   this.viewEngine.renderDialogue(dialogue);
-    // });
 
     if (model.dialogues.length > 0) {
       this.viewEngine.renderDialogue(model.dialogues[0]);
@@ -85,6 +93,39 @@ class ViewProvider {
       this.event.emit('change:selectingNode', val);
     }
     this._selectingNode = val;
+  }
+
+  get draging(): boolean {
+    return this._draging;
+  }
+
+  set draging(val: boolean) {
+    if (this._draging !== val) {
+      this.event.emit('change:draging', val);
+    }
+    this._draging = val;
+  }
+
+  get dragTarget(): DragTarget | null {
+    return this._dragTarget;
+  }
+
+  set dragTarget(val: DragTarget | null) {
+    if (this._dragTarget !== val) {
+      this.event.emit('change:dragTarget', val);
+    }
+    this._dragTarget = val;
+  }
+
+  get zoom(): number {
+    return this._zoom;
+  }
+
+  set zoom(val: number) {
+    if (this._zoom !== val) {
+      this.event.emit('change:zoom', val);
+    }
+    this._zoom = val;
   }
 }
 

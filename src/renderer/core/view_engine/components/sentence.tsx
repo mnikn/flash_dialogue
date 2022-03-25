@@ -270,8 +270,8 @@ const Sentence = ({
         selecting={selecting}
         onDoubleClick={showEditDialog}
         normalColor={'#78FF7F'}
-        hoverColor={'#BDFFC9'}
-        activeColor={'#A3FFB4'}
+        hoverColor={'#CFFFD7'}
+        activeColor={'#E1FFE0'}
       >
         {data.data.actors.length > 0 && (
           <div

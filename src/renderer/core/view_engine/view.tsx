@@ -1,18 +1,15 @@
 import PreviewIcon from '@mui/icons-material/Preview';
-import MenuIcon from '@mui/icons-material/Menu';
 import {
-  Button,
-  IconButton,
-  Stack,
-  Menu as MuiMenu,
-  CircularProgress,
   Alert,
+  Button,
+  CircularProgress,
+  Menu as MuiMenu,
+  Stack,
+  Box,
 } from '@mui/material';
-import Menu from './menu';
 import MenuItem from '@mui/material/MenuItem';
 import * as d3 from 'd3';
 import {
-  MouseEvent,
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -23,17 +20,22 @@ import {
 import useEventState from 'renderer/hooks/use_event_state';
 import Node from '../model/node';
 import BranchNode from '../model/node/branch';
-import { appendChildNode, appendSameLevelNode } from '../model/node/factory';
+import {
+  appendChildNode,
+  appendSameLevelNode,
+  findNodeById,
+} from '../model/node/factory';
 import RootNode from '../model/node/root';
 import SentenceNode from '../model/node/sentence';
 import ViewProvider from '../view_provider';
 import Branch from './components/branch';
 import Connection from './components/connection';
+import Loading from './components/loading';
 import PreviewDialogue from './components/preview_dialogue';
 import Root from './components/root';
 import Sentence from './components/sentence';
 import SettingsDialog from './components/settings';
-import Context, { GlobalSettings } from './context';
+import Context from './context';
 import {
   listenPreviewDialogueJson,
   listenSaveProject,
@@ -42,9 +44,80 @@ import {
   saveProject,
   showEdit,
 } from './event';
-import DialogueToolbar from './toolbar';
 import DialogueJsonDialog from './json_dialog';
-import { setPriority } from 'os';
+import Menu from './menu';
+import DialogueToolbar from './toolbar';
+
+const NodeCard = ({
+  data,
+  selecting = false,
+  select,
+  startEdit,
+  endEdit,
+  canDrag = true,
+  startDrag,
+  onDrag,
+  endDrag,
+}: {
+  data: any;
+  selecting?: boolean;
+  select?: () => void;
+  canDrag?: boolean;
+  startEdit?: () => void;
+  endEdit?: (confirm: boolean, form: any) => void;
+  startDrag?: (e: any) => void;
+  onDrag?: (e: any) => void;
+  endDrag?: (e: any) => void;
+}) => {
+  return (
+    <div
+      key={data.id}
+      style={{
+        transform: `translate(${data.y0}px,${data.x0}px)`,
+        position: 'absolute',
+      }}
+      onClick={(e) => {
+        if (e.defaultPrevented) return;
+        select && select();
+      }}
+      ref={(dom) => {
+        if (dom && canDrag) {
+          const dragListener = d3
+            .drag()
+            .on('start', (d) => startDrag && startDrag(d))
+            .on('drag', (d) => onDrag && onDrag(d))
+            .on('end', (d) => endDrag && endDrag(d));
+          dragListener(d3.select(dom));
+        }
+      }}
+    >
+      {data.data.type === 'sentence' && (
+        <Sentence
+          selecting={selecting}
+          data={data.data}
+          onEdit={() => startEdit && startEdit()}
+          onEditFinish={(confirm, form) => endEdit && endEdit(confirm, form)}
+        />
+      )}
+      {data.data.type === 'branch' && (
+        <Branch
+          selecting={selecting}
+          data={data.data}
+          onEdit={() => startEdit && startEdit()}
+          onEditFinish={(confirm, form) => endEdit && endEdit(confirm, form)}
+        />
+      )}
+      {data.data.type === 'root' && (
+        <Root
+          selecting={selecting}
+          data={data.data}
+          onEdit={() => startEdit && startEdit()}
+          onEditFinish={(confirm, form) => endEdit && endEdit(confirm, form)}
+        />
+      )}
+    </div>
+  );
+};
 
 const View = ({
   container,
@@ -75,6 +148,7 @@ const View = ({
 
   const [rootData, setRootData] = useState<RootNode>(dialogue);
   const [treeData, setTreeData] = useState<any[]>([]);
+  const [dragingTreeNode, setDragingTreeNode] = useState<any | null>(null);
   const [linkData, setLinkData] = useState<any[]>([]);
 
   const [dialogueJsonDialogueVisible, setDialogueJsonDialogueVisible] =
@@ -104,6 +178,7 @@ const View = ({
     d3.select(container).call(
       (d3 as any).zoom().on('zoom', function () {
         const transfromRes = d3.zoomTransform(this);
+        owner.zoom = transfromRes.k;
         d3.select(domRef.current).style(
           'transform',
           `translate(${transfromRes.x}px,${transfromRes.y}px) scale(${transfromRes.k})`
@@ -112,24 +187,37 @@ const View = ({
     );
 
     d3.select(container).on('dblclick.zoom', null);
-  }, []);
+  }, [owner]);
 
   useLayoutEffect(() => {
-    const root = d3.hierarchy(
-      rootData.toRenderJson()
-    ) as d3.HierarchyRectangularNode<any>;
+    const json = rootData.toRenderJson();
+    if (dragingTreeNode) {
+      const pnode = findNodeById(
+        json,
+        findNodeById(json, dragingTreeNode.data.id)?.parentId as string
+      );
+      if (pnode) {
+        pnode.children = pnode.children.filter(
+          (n) => n.id !== dragingTreeNode.data.id
+        );
+      }
+    }
+    const root = d3.hierarchy(json) as d3.HierarchyRectangularNode<any>;
     root.x0 = 0;
     root.y0 = 0;
     const tree = d3.tree().nodeSize([240, 700]);
     tree(root);
 
     root.descendants().forEach((d: any, i: any) => {
-      d.id = i;
+      d.id = d.data.id;
       d._children = d.children;
     });
 
     const updateNodeTree = (source: any) => {
-      const nodes = root.descendants().reverse();
+      let nodes = root.descendants().reverse();
+      if (dragingTreeNode) {
+        nodes = nodes.concat(dragingTreeNode);
+      }
       setTreeData(nodes);
 
       // Stash the old positions for transition.
@@ -217,7 +305,7 @@ const View = ({
     };
 
     updateNodeTree(root);
-  }, [rootData]);
+  }, [rootData, dragingTreeNode]);
 
   const doAppendSameLevelNode = useCallback(
     (type: 'sentence' | 'branch') => {
@@ -312,6 +400,15 @@ const View = ({
     };
   }, [owner, doDeleteNode, doAppendSameLevelNode, doAppendChildNode]);
 
+  const rootActionMenu = useMemo(() => {
+    return [
+      {
+        key: 'root_edit',
+        name: 'Edit',
+        action: () => showEdit(),
+      },
+    ];
+  }, []);
   const sentenceActionMenu = useMemo(() => {
     let insertChildActions: any[] = [];
     insertChildActions = [
@@ -346,6 +443,11 @@ const View = ({
     return [
       ...insertChildActions,
       ...insertSlbingActions,
+      {
+        key: 'sentence_edit',
+        name: 'Edit',
+        action: () => showEdit(),
+      },
       {
         key: 'sentence_delete_node',
         name: 'Delete',
@@ -388,6 +490,11 @@ const View = ({
       ...insertChildActions,
       ...insertSlbingActions,
       {
+        key: 'branch_edit',
+        name: 'Edit',
+        action: () => showEdit(),
+      },
+      {
         key: 'sentence_delete_node',
         name: 'Delete',
         action: () => doDeleteNode(),
@@ -400,9 +507,8 @@ const View = ({
   }, [owner, rootData]);
 
   useEffect(() => {
-    console.log('lle:', linkData);
     linkData.forEach((item) => {
-      owner.owner.dataProvider.currentDialogue?.iterateChildren((node) => {
+      owner.owner.dataProvider.currentDialogue?.iterate((node) => {
         const nodeLink = node.links.find((l) => {
           const hasSource =
             l.source instanceof Node
@@ -476,82 +582,157 @@ const View = ({
           <div id="nodes" style={{ position: 'relative', cursor: 'pointer' }}>
             {treeData.map((item) => {
               return (
-                <div
-                  key={item.id}
-                  style={{
-                    transform: `translate(${item.y0}px,${item.x0}px)`,
-                    position: 'absolute',
-                  }}
-                  onClick={() => {
-                    if (editing) {
-                      return;
-                    }
-                    owner.selectingNode =
-                      item.data.id === selectingNode?.id
-                        ? null
-                        : rootData.findChildNode(item.data.id);
-                  }}
-                >
-                  {item.data.type === 'sentence' && (
-                    <Sentence
-                      selecting={selectingNode?.id === item.data.id}
-                      data={item.data}
-                      onEdit={() => {
+                <div key={item.id}>
+                  {dragingTreeNode && item !== dragingTreeNode && (
+                    <>
+                      {item.data.type !== 'root' && (
+                        <Box
+                          sx={{
+                            width: '100px',
+                            height: '100px',
+                            background: '#CC3775',
+                            opacity: 0.8,
+                            position: 'absolute',
+                            borderRadius: '50%',
+                            left: item.y - 50,
+                            top: item.x + 30,
+                            zIndex: 10,
+                            '&:hover': {
+                              opacity: 1,
+                            },
+                          }}
+                          onMouseEnter={() => {
+                            if (!owner) {
+                              return;
+                            }
+                            const currentNode = rootData.findChildNode(
+                              item.data.id
+                            ) as Node<any>;
+                            owner.dragTarget = {
+                              node: currentNode,
+                              type: 'parent',
+                            };
+                          }}
+                          onMouseLeave={() => {
+                            if (!owner) {
+                              return;
+                            }
+                            owner.dragTarget = null;
+                          }}
+                        />
+                      )}
+                      <Box
+                        sx={{
+                          width: '100px',
+                          height: '100px',
+                          background: '#CC3775',
+                          opacity: 0.8,
+                          position: 'absolute',
+                          borderRadius: '50%',
+                          left: item.y + 350,
+                          top: item.x + 30,
+                          zIndex: 10,
+                          '&:hover': {
+                            opacity: 1,
+                          },
+                        }}
+                        onMouseEnter={() => {
+                          if (!owner) {
+                            return;
+                          }
+                          const currentNode = rootData.findChildNode(
+                            item.data.id
+                          ) as Node<any>;
+                          owner.dragTarget = {
+                            node: currentNode,
+                            type: 'child',
+                          };
+                        }}
+                        onMouseLeave={() => {
+                          if (!owner) {
+                            return;
+                          }
+                          owner.dragTarget = null;
+                        }}
+                      />
+                    </>
+                  )}
+                  <NodeCard
+                    data={item}
+                    canDrag={item.data.type !== 'root' && !dragingTreeNode}
+                    select={() => {
+                      if (editing) {
+                        return;
+                      }
+                      owner.selectingNode =
+                        item.data.id === selectingNode?.id
+                          ? null
+                          : rootData.findChildNode(item.data.id);
+                    }}
+                    selecting={selectingNode?.id === item.data.id}
+                    startEdit={() => {
+                      owner.selectingNode = rootData.findChildNode(
+                        item.data.id
+                      );
+                      owner.editing = true;
+                    }}
+                    endEdit={(confirm, form) => {
+                      owner.editing = false;
+                      owner.selectingNode = null;
+                      if (confirm) {
+                        item.data = form;
+                        setRootData((prev) => {
+                          const node = prev.findChildNode(item.data.id);
+                          node.data = form?.data;
+
+                          const updateNode = new RootNode(prev.data, prev.id);
+                          updateNode.children = prev.children;
+                          return updateNode;
+                        });
+                      }
+                    }}
+                    onDrag={(d) => {
+                      if (!owner.draging) {
+                        owner.draging = true;
                         owner.selectingNode = rootData.findChildNode(
                           item.data.id
                         );
-                        owner.editing = true;
-                      }}
-                      onEditFinish={(confirm, form) => {
-                        owner.editing = false;
-                        owner.selectingNode = null;
-                        if (confirm) {
-                          item.data = form;
-                          setRootData((prev) => {
-                            const node = prev.findChildNode(item.data.id);
-                            node.data = form?.data;
-
-                            const updateNode = new RootNode(prev.data, prev.id);
-                            updateNode.children = prev.children;
-                            return updateNode;
-                          });
-                        }
-                      }}
-                    />
-                  )}
-                  {item.data.type === 'branch' && (
-                    <Branch
-                      selecting={selectingNode?.id === item.data.id}
-                      data={item.data}
-                      onEdit={() => {
-                        owner.selectingNode = rootData.findChildNode(
-                          item.data.id
+                        d.sourceEvent.stopPropagation();
+                        setDragingTreeNode(item);
+                      }
+                      item.x0 += d.dy / owner.zoom;
+                      item.y0 += d.dx / owner.zoom;
+                      setTreeData((prev) => {
+                        return [...prev];
+                      });
+                    }}
+                    endDrag={() => {
+                      setDragingTreeNode(null);
+                      if (owner.dragTarget && owner.selectingNode) {
+                        owner.selectingNode?.parent?.deleteChildNode(
+                          owner.selectingNode.id
                         );
-                        owner.editing = true;
-                      }}
-                      onEditFinish={(confirm, form) => {
-                        owner.editing = false;
-                        owner.selectingNode = null;
-                        if (confirm) {
-                          item.data = form;
-                          setRootData((prev) => {
-                            const node = prev.findChildNode(item.data.id);
-                            node.data = form?.data;
-
-                            const updateNode = new RootNode(prev.data, prev.id);
-                            updateNode.children = prev.children;
-                            return updateNode;
-                          });
+                        const node = owner.dragTarget.node;
+                        if (owner.dragTarget.type === 'child') {
+                          node.addChildNode(owner.selectingNode);
+                        } else if (owner.dragTarget.type === 'parent') {
+                          let index: number | null =
+                            node.parent?.children.findIndex((n) => {
+                              return n.id === node.id;
+                            });
+                          index = index === -1 ? null : index;
+                          node.parent?.addChildNode(owner.selectingNode, index);
                         }
-                      }}
-                    />
-                  )}
-                  {item.data.type === 'root' && (
-                    <Root
-                      selecting={selectingNode?.id === item.data.id}
-                      data={item.data}
-                    />
-                  )}
+                      }
+                      owner.draging = false;
+                      owner.dragTarget = null;
+                      setRootData((prev) => {
+                        const updateNode = new RootNode(prev.data, prev.id);
+                        updateNode.children = prev.children;
+                        return updateNode;
+                      });
+                    }}
+                  />
                 </div>
               );
             })}
@@ -577,11 +758,6 @@ const View = ({
             }}
           >
             {linkData.map((item) => {
-              const data = item.from.data.links.find(
-                (d) =>
-                  d.sourceId === item.from.data.id &&
-                  d.targetId === item.target.data.id
-              );
               return (
                 <Connection
                   key={item.from.data.id + '-' + item.target.data.id}
@@ -625,6 +801,21 @@ const View = ({
               Settings
             </MenuItem>
           )}
+
+          {selectingNode instanceof RootNode &&
+            rootActionMenu.map((item) => {
+              return (
+                <MenuItem
+                  key={item.key}
+                  onClick={() => {
+                    item.action();
+                    handleClose();
+                  }}
+                >
+                  {item.name}
+                </MenuItem>
+              );
+            })}
           {selectingNode instanceof SentenceNode &&
             sentenceActionMenu.map((item) => {
               return (
@@ -709,33 +900,7 @@ const View = ({
         </Stack>
       </div>
 
-      {saving && (
-        <Alert
-          sx={{
-            position: 'fixed',
-            width: '50%',
-            transform: 'translateX(50%)',
-            zIndex: 10,
-            top: '50px',
-            height: '100px',
-            borderRadius: '8px',
-          }}
-          icon={<></>}
-          variant="standard"
-          color="info"
-        >
-          <Stack
-            spacing={2}
-            direction="row"
-            sx={{ alignItems: 'center', height: '100%', width: '100%' }}
-          >
-            <CircularProgress />
-            <div style={{ fontSize: '18px' }}>
-              Saving...Please wait for a while
-            </div>
-          </Stack>
-        </Alert>
-      )}
+      {saving && <Loading content={'Saving...Please wait for a while'} />}
 
       <DialogueToolbar />
     </Context.Provider>

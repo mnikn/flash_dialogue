@@ -3,6 +3,7 @@ import { Link } from './link';
 
 export interface NodeJsonData {
   id?: string;
+  parentId?: string;
   type: string;
   children: NodeJsonData[];
   links: { sourceId: string; targetId: string; data: { [key: string]: any } }[];
@@ -84,7 +85,7 @@ class Node<T> {
     };
   }
 
-  findChildNode(id: string) {
+  findChildNode(id: string): Node<any> | null {
     return this.doFindChildNode(this, id);
   }
 
@@ -109,32 +110,46 @@ class Node<T> {
     return instance;
   }
 
-  iterateChildren(callback: (node: Node<any>) => void) {
-    this.doIterateChildren(this, callback);
+  iterate(callback: (node: Node<any>) => void) {
+    this.doIterate(this, callback);
   }
 
-  private doIterateChildren(
-    node: Node<any>,
-    callback: (val: Node<any>) => void
-  ) {
+  private doIterate(node: Node<any>, callback: (val: Node<any>) => void) {
     if (!node) {
       return;
     }
-
+    callback(node);
     node.children.forEach((item) => {
       callback(item);
-      this.doIterateChildren(item, callback);
+      this.doIterate(item, callback);
     });
   }
 
   deleteChildNode(id: string) {
-    this.iterateChildren((item) => {
+    this.iterate((item) => {
       if (item.id === id && item.parent) {
         item.parent.children = item.parent.children.filter(
           (n) => n.id !== item.id
         );
       }
     });
+  }
+
+  addChildNode(node: Node<any>, index: number | null = null) {
+    node.parent = this;
+    if (index === null) {
+      this._children.push(node);
+    } else {
+      this._children.splice(index, 0, node);
+    }
+
+    this.createLink(node);
+  }
+
+  findLink(targetId: string): Link | null {
+    return (
+      this.links.find((l) => l.source === this && l.target === targetId) || null
+    );
   }
 }
 

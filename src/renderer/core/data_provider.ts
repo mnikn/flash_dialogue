@@ -63,6 +63,7 @@ class DataProvider {
         dialogues: [],
         projectSettings: {
           actors: [],
+          i18n: [],
         },
       };
       plainData.projectSettings = JSON.parse(res.res);
@@ -86,6 +87,7 @@ class DataProvider {
           }).toRenderJson()
         );
       }
+
       this.data = new DialogueTreeModel(plainData);
     }
 
@@ -109,6 +111,10 @@ class DataProvider {
     });
 
     const dialogueFolder = `${projectPath}\\dialogues`;
+
+    await window.electron.ipcRenderer.deleteFolderFiles({
+      path: dialogueFolder,
+    });
     this.data.dialogues.forEach(async (dialogue) => {
       const path = `${dialogueFolder}\\dialogue_${dialogue.data?.title}.json`;
       await window.electron.ipcRenderer.saveJsonFile({

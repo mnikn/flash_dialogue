@@ -115,6 +115,25 @@ ipcMain.on('readFolder', async (event, arg = {}) => {
   event.reply('readFolder', res);
 });
 
+ipcMain.on('deleteFolderFiles', async (event, arg = {}) => {
+  if (!mainWindow) {
+    return;
+  }
+
+  try {
+    fs.accessSync(arg.path);
+  } catch (err) {
+    fs.mkdirSync(arg.path, { recursive: true });
+  }
+  const res = fs.readdirSync(arg.path);
+
+  for (const path of res) {
+    const filePath = `${arg.path}\\${path}`;
+    fs.rmSync(filePath);
+  }
+  event.reply('deleteFolderFiles', res);
+});
+
 // ipcMain.on('saveJsonFileDialog', async (event, arg) => {
 //   if (!mainWindow) {
 //     return;
