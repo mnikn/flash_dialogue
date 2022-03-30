@@ -11,6 +11,7 @@ export interface Config {
 export interface DialogueTreeJson {
   dialogues: RootNodeJsonData[];
   projectSettings: ProjectSettings;
+  i18nData: { [key: string]: string };
 }
 
 const DEFAULT_CONFIG: Config = {

@@ -6,6 +6,7 @@ import {
   Menu as MuiMenu,
   Stack,
   Box,
+  Select,
 } from '@mui/material';
 import MenuItem from '@mui/material/MenuItem';
 import * as d3 from 'd3';
@@ -140,6 +141,11 @@ const View = ({
     event: owner.event,
     property: 'selectingNode',
     initialVal: null,
+  });
+  const currentLang = useEventState<string>({
+    event: owner.owner.dataProvider.event,
+    property: 'currentLang',
+    initialVal: owner.owner.dataProvider.currentLang,
   });
   const [settingDialogVisible, setSettingDialogVisible] = useState(false);
   const [previewDialogueVisible, setPreviewDialogueVisible] = useState(false);
@@ -685,6 +691,15 @@ const View = ({
                           const node = prev.findChildNode(item.data.id);
                           node.data = form?.data;
 
+                          if (
+                            node instanceof SentenceNode ||
+                            node instanceof BranchNode
+                          ) {
+                            owner.owner.dataProvider.data.i18nData[
+                              owner.owner.dataProvider.currentLang
+                            ][node.data?.content] = form.contentI18n;
+                          }
+
                           const updateNode = new RootNode(prev.data, prev.id);
                           updateNode.children = prev.children;
                           return updateNode;
@@ -882,21 +897,47 @@ const View = ({
           }}
         >
           <Menu />
-          <Button
-            variant="contained"
-            startIcon={<PreviewIcon />}
-            size="large"
-            onClick={() => {
-              setPreviewDialogueVisible(true);
-            }}
+          <Stack
+            direction="row"
             sx={{
               position: 'absolute',
               right: '64px',
             }}
-            disableFocusRipple
+            spacing={2}
           >
-            Preview Dialogue!
-          </Button>
+            <Select
+              labelId="i18n-select-label"
+              id="i18n-select"
+              value={currentLang}
+              label="I18n"
+              size="small"
+              sx={{ backgroundColor: '#fff', width: '120px' }}
+              onChange={(e) => {
+                owner.owner.dataProvider.currentLang = e.target.value;
+              }}
+            >
+              {owner.owner.dataProvider.data.projectSettings.i18n.map(
+                (item2, j) => {
+                  return (
+                    <MenuItem key={j} value={item2}>
+                      {item2}
+                    </MenuItem>
+                  );
+                }
+              )}
+            </Select>
+            <Button
+              variant="contained"
+              startIcon={<PreviewIcon />}
+              size="large"
+              onClick={() => {
+                setPreviewDialogueVisible(true);
+              }}
+              disableFocusRipple
+            >
+              Preview Dialogue!
+            </Button>
+          </Stack>
         </Stack>
       </div>
 

@@ -23,8 +23,10 @@ class DialogueTreeModel {
   public dialogues: RootNode[] = [];
   public projectSettings: ProjectSettings = {
     actors: [],
-    i18n: [],
+    i18n: ['en'],
   };
+
+  public i18nData: { [key: string]: string } = {};
 
   constructor(jsonData: DialogueTreeJson) {
     this.dialogues = jsonData.dialogues.map((item) => {
@@ -46,6 +48,8 @@ class DialogueTreeModel {
       ...this.projectSettings,
       ...jsonData.projectSettings,
     };
+
+    this.i18nData = jsonData.i18nData;
   }
 
   private parseJsonData(node: NodeJsonData) {

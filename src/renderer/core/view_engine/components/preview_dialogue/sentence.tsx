@@ -1,8 +1,11 @@
 import { Stack, Typography } from '@mui/material';
+import { useContext } from 'react';
 import { SentenceData } from 'renderer/core/model/node/sentence';
 import { getFinalImgPath } from 'renderer/utils/pic';
+import Context from '../../context';
 
 const Sentence = ({ data }: { data: SentenceData }) => {
+  const { owner } = useContext(Context);
   const direction =
     data.actorPosition === 'center'
       ? 'column'
@@ -61,7 +64,9 @@ const Sentence = ({ data }: { data: SentenceData }) => {
             userSelect: 'none',
           }}
         >
-          {data.content}
+          {owner?.owner.dataProvider.data.i18nData[
+            owner?.owner.dataProvider.currentLang
+          ][data.content] || ''}
         </Typography>
       </div>
     </Stack>

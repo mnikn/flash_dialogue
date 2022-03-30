@@ -1,7 +1,9 @@
 import { Button, Stack, Typography } from '@mui/material';
+import { useContext } from 'react';
 import { BranchData } from 'renderer/core/model/node/branch';
 import { NodeLinkJsonData } from 'renderer/core/model/node/link';
 import { getFinalImgPath } from 'renderer/utils/pic';
+import Context from '../../context';
 
 const Branch = ({
   data,
@@ -12,6 +14,7 @@ const Branch = ({
   linkData: NodeLinkJsonData[];
   onOptionClick: (link: NodeLinkJsonData) => void;
 }) => {
+  const { owner } = useContext(Context);
   const direction =
     data.actorPosition === 'center'
       ? 'column'
@@ -19,7 +22,6 @@ const Branch = ({
       ? 'row'
       : 'row-reverse';
 
-  console.log('prview b data: ', data, linkData);
   return (
     <Stack
       direction={direction}
@@ -74,7 +76,9 @@ const Branch = ({
             userSelect: 'none',
           }}
         >
-          {data.content}
+          {owner?.owner.dataProvider.data.i18nData[
+            owner?.owner.dataProvider.currentLang
+          ][data.content] || ''}
         </Typography>
 
         <Stack direction="column" spacing={1}>
@@ -89,10 +93,13 @@ const Branch = ({
                   },
                   borderRadius: '8px',
                   height: '40px',
+                  textTransform: 'none',
                 }}
                 onClick={() => onOptionClick(l)}
               >
-                {l.data.optionName}
+                {owner?.owner.dataProvider.data.i18nData[
+                  owner?.owner.dataProvider.currentLang
+                ][l.data.optionName] || ''}
               </Button>
             );
           })}

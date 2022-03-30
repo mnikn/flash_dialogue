@@ -18,8 +18,9 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import { useEffect, useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import { LinkData } from 'renderer/core/model/node/link';
+import Context from '../context';
 
 const FlagItem = ({
   item,
@@ -125,6 +126,7 @@ const FormDialog = ({
   source: any;
   onSubmit: (form: LinkData) => void;
 }) => {
+  const { owner } = useContext(Context);
   const [form, setForm] = useState<LinkData>(data);
   const handleOnClose = (_: any, reason: string) => {
     if (reason !== 'backdropClick') {
@@ -154,6 +156,12 @@ const FormDialog = ({
     </Card>
   );
 
+  const contentI18n =
+    source.type === 'branch'
+      ? owner?.owner.dataProvider.data.i18nData[
+          owner?.owner.dataProvider.currentLang
+        ][form.optionName] || ''
+      : '';
   const branchContent = (
     <Grid container spacing={2}>
       <Grid item xs={6}>
@@ -176,7 +184,7 @@ const FormDialog = ({
       <Grid item xs={6}>
         <TextField
           margin="dense"
-          label="Option name"
+          label="Option name i18n key"
           type="text"
           fullWidth
           size="small"
@@ -186,6 +194,33 @@ const FormDialog = ({
             form.optionName = e.target.value;
             setForm((prev) => {
               return { ...prev };
+            });
+          }}
+        />
+      </Grid>
+      <Grid item xs={12}>
+        <TextField
+          margin="dense"
+          label="Option name"
+          type="text"
+          fullWidth
+          size="small"
+          required
+          value={form.contentI18n}
+          onChange={(e) => {
+            if (!owner) {
+              return;
+            }
+            // owner?.owner.dataProvider.data.i18nData[
+            //  owner?.owner.dataProvider.currentLang
+            // ][form.optionName] = e.target.value;
+
+            const currentLang = owner.owner.dataProvider.currentLang as string;
+            owner.owner.dataProvider.data.i18nData[currentLang][
+              form.optionName
+            ] = e.target.value;
+            setForm((prev) => {
+              return { ...prev, contentI18n: e.target.value };
             });
           }}
         />
@@ -269,6 +304,7 @@ const Connection = ({
     (from.y + target.y) / 2 - (from.data.type === 'branch' ? 70 : 15),
   ];
 
+  const { owner } = useContext(Context);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const showEditDialog = () => {
     setEditDialogOpen(true);
@@ -284,6 +320,12 @@ const Connection = ({
     }
   };
 
+  const contentI18n =
+    from.data.type === 'branch'
+      ? owner?.owner.dataProvider.data.i18nData[
+          owner?.owner.dataProvider.currentLang
+        ][linkData.optionName] || ''
+      : '';
   return (
     <div
       style={{
@@ -323,7 +365,7 @@ const Connection = ({
               {linkData.optionName && linkData.optionId && (
                 <Divider sx={{ backgroundColor: '#0d2b45', width: '80%' }} />
               )}
-              <div>{linkData.optionName}</div>
+              <div>{contentI18n}</div>
             </Typography>
           </Stack>
         )}

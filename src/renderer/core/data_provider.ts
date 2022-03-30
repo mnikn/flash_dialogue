@@ -11,12 +11,15 @@ class DataProvider {
 
   private _currentDialogue: RootNode | null = null;
 
+  private _currentLang: string = 'en';
+
   public event = new Eventemitter();
 
   public data: DialogueTreeModel = new DialogueTreeModel({
     dialogues: [],
     projectSettings: {
       actors: [],
+      i18n: ['en'],
     },
   });
 
@@ -43,6 +46,17 @@ class DataProvider {
     }
   }
 
+  get currentLang(): string {
+    return this._currentLang;
+  }
+
+  set currentLang(val: string) {
+    if (this._currentLang !== val) {
+      this._currentLang = val;
+      this.event.emit('change:currentLang', val);
+    }
+  }
+
   public init() {
     logger.log('init');
     // window.electron.ipcRenderer.on('saveFile', this.save);
@@ -65,6 +79,7 @@ class DataProvider {
           actors: [],
           i18n: [],
         },
+        i18nData: {}
       };
       plainData.projectSettings = JSON.parse(res.res);
 
@@ -86,6 +101,20 @@ class DataProvider {
             title: 'Dialogue 1',
           }).toRenderJson()
         );
+      }
+
+      const i18nFolder = `${projectPath}\\i18n`;
+      const i18nFiles = await window.electron.ipcRenderer.readFolder({
+        path: i18nFolder,
+      });
+      for (const f of i18nFiles) {
+        const path = `${i18nFolder}\\${f}`;
+        const i18nDataRes = await window.electron.ipcRenderer.readJsonFile({
+          path,
+        });
+
+        const lang = f.split('.')[0];
+        plainData.i18nData[lang] = JSON.parse(i18nDataRes.res);
       }
 
       this.data = new DialogueTreeModel(plainData);
@@ -119,6 +148,18 @@ class DataProvider {
       const path = `${dialogueFolder}\\dialogue_${dialogue.data?.title}.json`;
       await window.electron.ipcRenderer.saveJsonFile({
         data: JSON.stringify(dialogue.toRenderJson(), null, 2),
+        path: path,
+      });
+    });
+
+    const i18nFolder = `${projectPath}\\i18n`;
+    await window.electron.ipcRenderer.deleteFolderFiles({
+      path: i18nFolder,
+    });
+    this.data.projectSettings.i18n.forEach(async (item) => {
+      const path = `${i18nFolder}\\${item}.json`;
+      await window.electron.ipcRenderer.saveJsonFile({
+        data: JSON.stringify(this.data.i18nData[item] || {}, null, 2),
         path: path,
       });
     });

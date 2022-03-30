@@ -13,7 +13,6 @@ import fs from 'fs';
 import { app, BrowserWindow, shell, ipcMain, dialog } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
-import MenuBuilder from './menu';
 import { resolveHtmlPath } from './util';
 
 export default class AppUpdater {
@@ -75,23 +74,23 @@ ipcMain.on('saveJsonFile', async (event, arg = {}) => {
   if (!mainWindow) {
     return;
   }
-  let path = arg.path;
-  if (!path) {
-    path = dialog.showSaveDialogSync(mainWindow, {
+  let filePath = arg.path;
+  if (!filePath) {
+    filePath = dialog.showSaveDialogSync(mainWindow, {
       filters: [{ name: 'Data', extensions: ['json'] }],
     });
   }
-  if (path) {
-    fs.writeFileSync(path, arg.data);
+  if (filePath) {
+    fs.writeFileSync(filePath, arg.data);
     const data = {
-      res: { path },
+      res: { filePath },
       arg,
     };
     event.reply('saveJsonFile', data);
   }
 });
 
-ipcMain.on('selectFolder', async (event, arg = {}) => {
+ipcMain.on('selectFolder', async (event) => {
   if (!mainWindow) {
     return;
   }
@@ -218,9 +217,6 @@ const createWindow = async () => {
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
-
-  const menuBuilder = new MenuBuilder(mainWindow);
-  menuBuilder.buildMenu();
 
   // Open urls in the user's browser
   mainWindow.webContents.setWindowOpenHandler((edata) => {

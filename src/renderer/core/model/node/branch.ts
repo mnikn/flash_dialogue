@@ -1,5 +1,6 @@
 import Node, { NodeJsonData } from '.';
 import { Link } from './link';
+import { generateUUID } from '../../../utils/uuid';
 
 export interface BranchData {
   content: string;
@@ -22,7 +23,7 @@ export default class BranchNode extends Node<BranchData> {
     super(data, id);
     if (!data) {
       this.data = {
-        content: '',
+        content: `branch_content_${generateUUID()}`,
         actors: [],
         actorPosition: 'left',
       };
@@ -40,7 +41,7 @@ export default class BranchNode extends Node<BranchData> {
   protected createLink(target: Node<any>): Link {
     const instance = new Link(this, target);
     instance.data = {
-      optionName: '',
+      optionName: `option_name_${generateUUID()}`,
       optionId: '',
       hiddenOptionFlags: [],
       disableOptionFlags: [],

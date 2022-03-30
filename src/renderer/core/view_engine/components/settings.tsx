@@ -283,12 +283,16 @@ const SettingsDialog = ({ close }: { close: () => void }) => {
                         size="small"
                         fullWidth
                         required
+                        disabled={val === 'en'}
                         value={val}
                         onChange={(e: any) => {
                           onChange(e.target.value);
                         }}
                       />
                     );
+                  }}
+                  canDelete={(val: any) => {
+                    return val !== 'en';
                   }}
                 />
               </CardContent>

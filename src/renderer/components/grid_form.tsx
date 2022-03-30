@@ -7,16 +7,20 @@ const GridItem = ({
   onChange,
   onDelete,
   renderItem,
+  canDelete,
 }: {
   item: any;
   onChange: (val: any) => void;
   onDelete: () => void;
   renderItem: (val: any, onChange: (val: any) => void) => ReactNode;
+  canDelete?: (val: any) => boolean;
 }) => (
   <Grid item xs={6}>
     <Stack spacing={1} direction="row" sx={{ alignItems: 'center' }}>
       {renderItem(item, onChange)}
-      <DeleteItcon sx={{ cursor: 'pointer' }} onClick={onDelete} />
+      {(!canDelete || canDelete(item)) && (
+        <DeleteItcon sx={{ cursor: 'pointer' }} onClick={onDelete} />
+      )}
     </Stack>
   </Grid>
 );
@@ -26,11 +30,13 @@ const GridForm = ({
   renderItem,
   createNewItem,
   onChange,
+  canDelete,
 }: {
   data: any[];
   onChange: (val: any[]) => void;
   createNewItem: () => any;
   renderItem: (val: any, onChange: (val: any) => void) => ReactNode;
+  canDelete?: (val: any) => boolean;
 }) => {
   const [list, setList] = useState<any[]>(data);
 
@@ -53,6 +59,7 @@ const GridForm = ({
                   return [...prev];
                 });
               }}
+              canDelete={canDelete}
               onDelete={() => {
                 setList((prev) => {
                   return prev.filter((_, j) => j !== i);

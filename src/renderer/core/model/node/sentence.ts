@@ -1,5 +1,6 @@
 import Node, { NodeJsonData } from '../node';
 import { Link } from './link';
+import { generateUUID } from '../../../utils/uuid';
 
 export interface SentenceData {
   content: string;
@@ -22,7 +23,7 @@ export default class SentenceNode extends Node<SentenceData> {
     super(data, id);
     if (!data) {
       this.data = {
-        content: '',
+        content: `sentence_content_${generateUUID()}`,
         actors: [],
         actorPosition: 'left',
       };
