@@ -21,10 +21,9 @@ const useEventState = <T>({
     return () => {
       event.off(`change:${property}`, updateData);
     };
-  }, [event]);
+  }, [event, property]);
 
   return data;
 };
-
 
 export default useEventState;

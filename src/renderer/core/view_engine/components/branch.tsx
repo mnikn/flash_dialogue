@@ -300,9 +300,9 @@ const Branch = ({
       <NodeCard
         selecting={selecting}
         onDoubleClick={showEditDialog}
-        normalColor={'#7145FF'}
-        hoverColor={'#B48AFF'}
-        activeColor={'#D5BDFF'}
+        normalColor="#7145FF"
+        hoverColor="#B48AFF"
+        activeColor="#D5BDFF"
       >
         {data.data.actors.length > 0 && (
           <div

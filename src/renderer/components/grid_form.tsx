@@ -1,6 +1,7 @@
-import { Button, Grid, Stack } from '@mui/material';
 import DeleteItcon from '@mui/icons-material/Delete';
-import { ReactNode, useEffect, useState } from 'react';
+import { Button, Grid, Stack } from '@mui/material';
+import { ReactNode, useEffect } from 'react';
+import useListWithKey from 'renderer/hooks/use_list_with_key';
 
 const GridItem = ({
   item,
@@ -31,18 +32,24 @@ const GridForm = ({
   createNewItem,
   onChange,
   canDelete,
+  onItemAdd,
+  onItemRemove,
+  onItemUpdate,
 }: {
   data: any[];
   onChange: (val: any[]) => void;
+  onItemAdd?: (val: any) => void;
+  onItemRemove?: (i: number) => void;
+  onItemUpdate?: (i: number, val: any) => void;
   createNewItem: () => any;
   renderItem: (val: any, onChange: (val: any) => void) => ReactNode;
   canDelete?: (val: any) => boolean;
 }) => {
-  const [list, setList] = useState<any[]>(data);
+  const [list, { updateAt, removeAt, push }] = useListWithKey(data);
 
   useEffect(() => {
-    onChange(list);
-  }, [list]);
+    onChange(list.map((item) => item.data));
+  }, [list, onChange]);
 
   return (
     <Stack spacing={1}>
@@ -50,20 +57,21 @@ const GridForm = ({
         {list.map((item, i) => {
           return (
             <GridItem
-              key={i}
-              item={item}
+              key={item.key}
+              item={item.data}
               renderItem={renderItem}
               onChange={(val) => {
-                list[i] = val;
-                setList((prev) => {
-                  return [...prev];
-                });
+                updateAt(i, val);
+                if (onItemUpdate) {
+                  onItemUpdate(i, val);
+                }
               }}
               canDelete={canDelete}
               onDelete={() => {
-                setList((prev) => {
-                  return prev.filter((_, j) => j !== i);
-                });
+                removeAt(i);
+                if (onItemRemove) {
+                  onItemRemove(i);
+                }
               }}
             />
           );
@@ -72,9 +80,11 @@ const GridForm = ({
       <Button
         variant="contained"
         onClick={() => {
-          setList((prev) => {
-            return prev.concat(createNewItem());
-          });
+          const newVal = createNewItem();
+          push(newVal);
+          if (onItemAdd) {
+            onItemAdd(newVal);
+          }
         }}
       >
         Add item

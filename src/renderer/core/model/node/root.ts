@@ -22,7 +22,7 @@ export default class RootNode extends Node<RootData> {
   }
 
   public toRenderJson(): RootNodeJsonData {
-    let baseJson = super.toRenderJson();
+    const baseJson = super.toRenderJson();
     return {
       ...baseJson,
       type: 'root',

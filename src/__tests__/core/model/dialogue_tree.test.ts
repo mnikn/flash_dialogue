@@ -16,7 +16,9 @@ describe('model dialogue tree', () => {
       ],
       projectSettings: {
         actors: [],
+        i18n: [],
       },
+      i18nData: {},
     };
     const instance = new DialogueTree(jsonData);
     const rootA = instance.dialogues[0];
@@ -53,7 +55,9 @@ describe('model dialogue tree', () => {
       ],
       projectSettings: {
         actors: [],
+        i18n: [],
       },
+      i18nData: {},
     };
     const instanceB = new DialogueTree(jsonDataB);
     expect(instanceB.dialogues[0].children[0].data?.content).toBe('Child 1');
@@ -99,7 +103,9 @@ describe('model dialogue tree', () => {
       ],
       projectSettings: {
         actors: [],
+        i18n: [],
       },
+      i18nData: {},
     };
     const instanceC = new DialogueTree(jsonDataC);
     expect(instanceC.dialogues[0].children[0].children[0].data?.content).toBe(
@@ -182,7 +188,9 @@ describe('model dialogue tree', () => {
       ],
       projectSettings: {
         actors: [],
+        i18n: [],
       },
+      i18nData: {},
     };
     const instanceD = new DialogueTree(jsonDataD);
     expect(instanceD.dialogues[1].children[0].children[0].data?.content).toBe(

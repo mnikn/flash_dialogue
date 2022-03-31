@@ -24,6 +24,10 @@ export const appendSameLevelNode = (
         newNode = new BranchNode();
         break;
       }
+      default: {
+        newNode = new SentenceNode();
+        break;
+      }
     }
 
     sourceNode.parent.children = [...sourceNode.parent.children, newNode];
@@ -48,6 +52,10 @@ export const appendChildNode = (
     }
     case 'branch': {
       newNode = new BranchNode();
+      break;
+    }
+    default: {
+      newNode = new SentenceNode();
       break;
     }
   }
@@ -81,5 +89,9 @@ export const findLink = (
   targetId: string
 ): { [key: string]: any } | null => {
   const source = findNodeById(root, sourceId);
-  return source?.links.find((l) => l.sourceId === sourceId && l.targetId === targetId) || null;
+  return (
+    source?.links.find(
+      (l) => l.sourceId === sourceId && l.targetId === targetId
+    ) || null
+  );
 };

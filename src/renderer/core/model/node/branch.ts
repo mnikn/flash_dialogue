@@ -31,7 +31,7 @@ export default class BranchNode extends Node<BranchData> {
   }
 
   public toRenderJson(): BranchNodeJsonData {
-    let baseJson = super.toRenderJson();
+    const baseJson = super.toRenderJson();
     return {
       ...baseJson,
       type: 'branch',

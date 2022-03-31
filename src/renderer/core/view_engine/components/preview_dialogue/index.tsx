@@ -1,4 +1,5 @@
 import CloseIcon from '@mui/icons-material/Close';
+import DeleteItcon from '@mui/icons-material/Delete';
 import {
   Button,
   Checkbox,
@@ -13,20 +14,14 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { NodeJsonData } from 'renderer/core/model/node';
 import { BranchData } from 'renderer/core/model/node/branch';
-import { findLink, findNodeById } from 'renderer/core/model/node/factory';
+import { findNodeById } from 'renderer/core/model/node/factory';
 import { NodeLinkJsonData } from 'renderer/core/model/node/link';
 import { RootNodeJsonData } from 'renderer/core/model/node/root';
 import { SentenceData } from 'renderer/core/model/node/sentence';
-import DeleteItcon from '@mui/icons-material/Delete';
+import useListWithKey from 'renderer/hooks/use_list_with_key';
 import Branch from './branch';
 import Sentence from './sentence';
 
@@ -117,9 +112,8 @@ class DialogueProcessor {
       const nextNode = findNodeById(this.rootNode, matchLink.targetId);
       this.currentNode = nextNode;
       return nextNode;
-    } else {
-      return null;
     }
+    return null;
   }
 
   public jumpToTargetNode(link: NodeLinkJsonData): NodeJsonData | null {
@@ -140,13 +134,16 @@ const PreviewDialogue = ({
   close: () => void;
   data: RootNodeJsonData;
 }) => {
-  const [chatList, setChatList] = useState<NodeJsonData[]>([]);
+  const [chatList, { push }] = useListWithKey<NodeJsonData>([]);
   const [finished, setFinished] = useState<boolean>(false);
   const contentDomRef = useRef<HTMLDivElement>();
   const dialogueProcessorRef = useRef<DialogueProcessor>(
     new DialogueProcessor(data)
   );
-  const [flags, setFlags] = useState<Flag[]>([]);
+  const [
+    flags,
+    { push: pushFlag, removeAt: removeFlag, updateAt: updateFlag },
+  ] = useListWithKey<Flag>([]);
   const handleOnClose = (_: any, reason: string) => {
     if (reason !== 'backdropClick') {
       close();
@@ -173,11 +170,9 @@ const PreviewDialogue = ({
         setFinished(true);
         return;
       }
-      setChatList((prev) => {
-        return [...prev, node];
-      });
+      push(node);
     },
-    [finished]
+    [finished, push]
   );
 
   const onDomMounted = (dom: HTMLDivElement) => {
@@ -192,7 +187,7 @@ const PreviewDialogue = ({
   };
 
   useEffect(() => {
-    dialogueProcessorRef.current.flags = flags;
+    dialogueProcessorRef.current.flags = flags.map((item) => item.data);
   }, [flags]);
 
   return (
@@ -268,19 +263,14 @@ const PreviewDialogue = ({
             >
               {flags.map((item, i) => {
                 return (
-                  <Grid item xs={6} key={i}>
+                  <Grid item xs={6} key={item.key}>
                     <FlagItem
-                      key={i}
-                      data={item}
+                      data={item.data}
                       onChange={(val) => {
-                        setFlags((prev) => {
-                          return prev.map((f, j) => (j === i ? val : f));
-                        });
+                        updateFlag(i, val);
                       }}
                       onDelete={() => {
-                        setFlags((prev) => {
-                          return prev.filter((_, j) => j !== i);
-                        });
+                        removeFlag(i);
                       }}
                     />
                   </Grid>
@@ -294,8 +284,9 @@ const PreviewDialogue = ({
                 marginTop: 'auto!important',
               }}
               onClick={() => {
-                setFlags((prev) => {
-                  return [...prev, { id: '', match: true }];
+                pushFlag({
+                  id: '',
+                  match: true,
                 });
               }}
             >
@@ -315,18 +306,21 @@ const PreviewDialogue = ({
             ref={onDomMounted}
           >
             {chatList.map((item) => {
-              if (item.type === 'branch') {
+              if (item.data.type === 'branch') {
                 return (
                   <Branch
-                    key={item.id}
-                    data={item.data as BranchData}
-                    linkData={item.links}
+                    key={item.key}
+                    data={item.data.data as BranchData}
+                    linkData={item.data.links}
                     onOptionClick={next}
                   />
                 );
               }
               return (
-                <Sentence key={item.id} data={item.data as SentenceData} />
+                <Sentence
+                  key={item.key}
+                  data={item.data.data as SentenceData}
+                />
               );
             })}
             {finished && (

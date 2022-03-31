@@ -1,4 +1,4 @@
-import Node, { NodeJsonData } from '../node';
+import Node, { NodeJsonData } from '.';
 import { Link } from './link';
 import { generateUUID } from '../../../utils/uuid';
 
@@ -29,24 +29,6 @@ export default class SentenceNode extends Node<SentenceData> {
       };
     }
   }
-  // get children() {
-  //   return this._children;
-  // }
-  // set children(val: Node<any>[]) {
-  //   if (val.length > 1) {
-  //     throw new Error('sentence node children can not have multi');
-  //   }
-
-  //   // remove origin children parent and assign new one
-  //   this._children.forEach((item) => {
-  //     item.parent = null;
-  //   });
-
-  //   this._children = val.map((item) => {
-  //     item.parent = this;
-  //     return item;
-  //   });
-  // }
 
   protected createLink(target: Node<any>): Link {
     const instance = new Link(this, target);
@@ -57,7 +39,7 @@ export default class SentenceNode extends Node<SentenceData> {
   }
 
   public toRenderJson(): SentenceNodeJsonData {
-    let baseJson = super.toRenderJson();
+    const baseJson = super.toRenderJson();
     return {
       ...baseJson,
       type: 'sentence',

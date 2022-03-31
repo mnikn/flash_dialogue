@@ -246,6 +246,7 @@
     "react-dynamic-material-form": "^0.1.0",
     "react-monaco-editor": "^0.47.0",
     "react-router-dom": "^6.2.1",
+    "react-use": "^17.3.2",
     "xmind": "^2.2.24"
   },
   "devEngines": {

@@ -16,12 +16,12 @@ import {
   Typography,
 } from '@mui/material';
 import { useContext, useEffect, useState } from 'react';
+import { ProjectSettings } from 'renderer/core/model/dialogue_tree';
 import { SentenceNodeJsonData } from 'renderer/core/model/node/sentence';
+import { getFinalImgPath } from 'renderer/utils/pic';
+import Context from '../context';
 import { listenEdit } from '../event';
 import NodeCard from './node_card';
-import Context from '../context';
-import { getFinalImgPath } from 'renderer/utils/pic';
-import { ProjectSettings } from 'renderer/core/model/dialogue_tree';
 
 interface FormData extends SentenceNodeJsonData {
   contentI18n: string;
@@ -300,9 +300,9 @@ const Sentence = ({
       <NodeCard
         selecting={selecting}
         onDoubleClick={showEditDialog}
-        normalColor={'#78FF7F'}
-        hoverColor={'#CFFFD7'}
-        activeColor={'#E1FFE0'}
+        normalColor="#78FF7F"
+        hoverColor="#CFFFD7"
+        activeColor="#E1FFE0"
       >
         {data.data.actors.length > 0 && (
           <div

@@ -1,4 +1,4 @@
-import { generateUUID } from '../../..//utils/uuid';
+import { generateUUID } from '../../../utils/uuid';
 import { Link } from './link';
 
 export interface NodeJsonData {

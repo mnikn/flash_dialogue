@@ -1,10 +1,9 @@
 import Eventemitter from 'eventemitter3';
-import { createLogger } from '../utils/logger';
 import DialogueTree from '.';
+import { createLogger } from '../utils/logger';
 import DialogueTreeModel from './model/dialogue_tree';
-import ViewEngine from './view_engine';
-import RootNode from './model/node/root';
 import Node from './model/node';
+import ViewEngine from './view_engine';
 
 interface DragTarget {
   node: Node<any>;

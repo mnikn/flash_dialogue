@@ -1,5 +1,5 @@
-import SettingsIcon from '@mui/icons-material/Settings';
 import DeleteItcon from '@mui/icons-material/Delete';
+import SettingsIcon from '@mui/icons-material/Settings';
 import {
   Button,
   Card,
@@ -18,8 +18,9 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import { useContext, useEffect, useState } from 'react';
+import { useCallback, useContext, useEffect, useState } from 'react';
 import { LinkData } from 'renderer/core/model/node/link';
+import useListWithKey from 'renderer/hooks/use_list_with_key';
 import Context from '../context';
 
 const FlagItem = ({
@@ -69,14 +70,15 @@ const FlagList = ({
   flags,
   onChange,
 }: {
-  flags: { flag: string; match: boolean }[];
-  onChange: (val: { flag: string; match: boolean }[]) => void;
+  flags: { id: string; match: boolean }[];
+  onChange: (val: { id: string; match: boolean }[]) => void;
 }) => {
-  const [list, setList] = useState<{ flag: string; match: boolean }[]>(flags);
+  const [list, { updateAt, removeAt, push }] =
+    useListWithKey<{ id: string; match: boolean }>(flags);
 
   useEffect(() => {
-    onChange(list);
-  }, [list]);
+    onChange(list.map((item) => item.data));
+  }, [list, onChange]);
 
   return (
     <Stack spacing={1}>
@@ -84,18 +86,13 @@ const FlagList = ({
         {list.map((item, i) => {
           return (
             <FlagItem
-              key={i}
-              item={item}
+              key={item.key}
+              item={item.data}
               onChange={(val) => {
-                list[i] = val;
-                setList((prev) => {
-                  return [...prev];
-                });
+                updateAt(i, val);
               }}
               onDelete={() => {
-                setList((prev) => {
-                  return prev.filter((_, j) => j !== i);
-                });
+                removeAt(i);
               }}
             />
           );
@@ -104,8 +101,9 @@ const FlagList = ({
       <Button
         variant="contained"
         onClick={() => {
-          setList((prev) => {
-            return prev.concat({ flag: '', match: true });
+          push({
+            id: '',
+            match: true,
           });
         }}
       >
@@ -127,7 +125,15 @@ const FormDialog = ({
   onSubmit: (form: LinkData) => void;
 }) => {
   const { owner } = useContext(Context);
-  const [form, setForm] = useState<LinkData>(data);
+  const [form, setForm] = useState<LinkData>({
+    ...data,
+    contentI18n:
+      source.type === 'branch'
+        ? owner?.owner.dataProvider.data.i18nData[
+            owner?.owner.dataProvider.currentLang
+          ][data.optionName] || ''
+        : '',
+  });
   const handleOnClose = (_: any, reason: string) => {
     if (reason !== 'backdropClick') {
       close();
@@ -139,29 +145,62 @@ const FormDialog = ({
     close();
   };
 
+  const onFlagListChange = useCallback((val) => {
+    setForm((prev) => {
+      return { ...prev, transferFlags: val };
+    });
+  }, []);
+
+  const onOptionIdChange = useCallback((e) => {
+    setForm((prev) => {
+      return { ...prev, optionId: e.target.value };
+    });
+  }, []);
+
+  const onOptionNameI18nKeyChange = useCallback((e) => {
+    setForm((prev) => {
+      return { ...prev, optionName: e.target.value };
+    });
+  }, []);
+
+  const onOptionNameContentChange = useCallback(
+    (e) => {
+      if (!owner) {
+        return;
+      }
+
+      setForm((prev) => {
+        const currentLang = owner.owner.dataProvider.currentLang as string;
+        owner.owner.dataProvider.data.i18nData[currentLang][prev.optionName] =
+          e.target.value;
+        return { ...prev, contentI18n: e.target.value };
+      });
+    },
+    [owner]
+  );
+
+  const onHiddenOptionFlagsChange = useCallback((val) => {
+    setForm((prev) => {
+      return { ...prev, hiddenOptionFlags: val };
+    });
+  }, []);
+  const onDisableOptionFlagsChange = useCallback((val) => {
+    setForm((prev) => {
+      return { ...prev, disableOptionFlags: val };
+    });
+  }, []);
   const sentenceContent = (
     <Card>
       <CardHeader subheader="Transfer flags" />
       <CardContent>
         <FlagList
           flags={form.transferFlags || []}
-          onChange={(val) => {
-            form.transferFlags = val;
-            setForm((prev) => {
-              return { ...prev };
-            });
-          }}
+          onChange={onFlagListChange}
         />
       </CardContent>
     </Card>
   );
 
-  const contentI18n =
-    source.type === 'branch'
-      ? owner?.owner.dataProvider.data.i18nData[
-          owner?.owner.dataProvider.currentLang
-        ][form.optionName] || ''
-      : '';
   const branchContent = (
     <Grid container spacing={2}>
       <Grid item xs={6}>
@@ -173,12 +212,7 @@ const FormDialog = ({
           size="small"
           required
           value={form.optionId || ''}
-          onChange={(e) => {
-            form.optionId = e.target.value;
-            setForm((prev) => {
-              return { ...prev };
-            });
-          }}
+          onChange={onOptionIdChange}
         />
       </Grid>
       <Grid item xs={6}>
@@ -190,12 +224,7 @@ const FormDialog = ({
           size="small"
           required
           value={form.optionName || ''}
-          onChange={(e) => {
-            form.optionName = e.target.value;
-            setForm((prev) => {
-              return { ...prev };
-            });
-          }}
+          onChange={onOptionNameI18nKeyChange}
         />
       </Grid>
       <Grid item xs={12}>
@@ -207,22 +236,7 @@ const FormDialog = ({
           size="small"
           required
           value={form.contentI18n}
-          onChange={(e) => {
-            if (!owner) {
-              return;
-            }
-            // owner?.owner.dataProvider.data.i18nData[
-            //  owner?.owner.dataProvider.currentLang
-            // ][form.optionName] = e.target.value;
-
-            const currentLang = owner.owner.dataProvider.currentLang as string;
-            owner.owner.dataProvider.data.i18nData[currentLang][
-              form.optionName
-            ] = e.target.value;
-            setForm((prev) => {
-              return { ...prev, contentI18n: e.target.value };
-            });
-          }}
+          onChange={onOptionNameContentChange}
         />
       </Grid>
 
@@ -232,12 +246,7 @@ const FormDialog = ({
           <CardContent>
             <FlagList
               flags={form.hiddenOptionFlags || []}
-              onChange={(val) => {
-                form.hiddenOptionFlags = val;
-                setForm((prev) => {
-                  return { ...prev };
-                });
-              }}
+              onChange={onHiddenOptionFlagsChange}
             />
           </CardContent>
         </Card>
@@ -249,12 +258,7 @@ const FormDialog = ({
           <CardContent>
             <FlagList
               flags={form.disableOptionFlags || []}
-              onChange={(val) => {
-                form.disableOptionFlags = val;
-                setForm((prev) => {
-                  return { ...prev };
-                });
-              }}
+              onChange={onDisableOptionFlagsChange}
             />
           </CardContent>
         </Card>

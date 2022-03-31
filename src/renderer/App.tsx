@@ -75,7 +75,7 @@ export default function App() {
           width: '100%',
           padding: '30px',
         }}
-      ></div>
+      />
     </>
   );
 }

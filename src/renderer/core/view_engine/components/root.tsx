@@ -115,9 +115,9 @@ const Root = ({
       <NodeCard
         selecting={selecting}
         onDoubleClick={showEditDialog}
-        normalColor={'#ffaa5e'}
-        hoverColor={'#ffd4a3'}
-        activeColor={'#ffecd6'}
+        normalColor="#ffaa5e"
+        hoverColor="#ffd4a3"
+        activeColor="#ffecd6"
       >
         <Box sx={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
           <CardContent

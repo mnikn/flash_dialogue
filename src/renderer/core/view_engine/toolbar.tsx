@@ -4,13 +4,13 @@ import {
   Box,
   IconButton,
   Menu,
+  MenuItem,
   Stack,
   Toolbar,
-  MenuItem,
 } from '@mui/material';
 import { useContext, useState } from 'react';
 import Context from './context';
-import { showDialogueSettings, showEdit } from './event';
+import { showDialogueSettings } from './event';
 
 const DialogueToolbar = () => {
   const { owner } = useContext(Context);

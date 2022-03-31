@@ -1,14 +1,7 @@
 import CloseIcon from '@mui/icons-material/Close';
-import {
-  Dialog,
-  DialogContent,
-  DialogContentText,
-  DialogTitle,
-  Stack,
-} from '@mui/material';
-import { useCallback, useLayoutEffect, useRef, useState } from 'react';
-import DataProvider from '../data_provider';
+import { Dialog, DialogContent, DialogTitle, Stack } from '@mui/material';
 import MonacoEditor from 'react-monaco-editor';
+import DataProvider from '../data_provider';
 
 const DialogueJsonDialog = ({
   provider,

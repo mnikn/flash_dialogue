@@ -4,6 +4,7 @@ import DialogueTree, { DialogueTreeJson } from '.';
 import { createLogger } from '../utils/logger';
 import DialogueTreeModel from './model/dialogue_tree';
 import RootNode from './model/node/root';
+
 const logger = createLogger('data-provider');
 
 class DataProvider {
@@ -79,7 +80,7 @@ class DataProvider {
           actors: [],
           i18n: [],
         },
-        i18nData: {}
+        i18nData: {},
       };
       plainData.projectSettings = JSON.parse(res.res);
 

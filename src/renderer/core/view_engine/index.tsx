@@ -1,6 +1,6 @@
+import { render, unmountComponentAtNode } from 'react-dom';
 import RootNode from '../model/node/root';
 import ViewProvider from '../view_provider';
-import { render, unmountComponentAtNode } from 'react-dom';
 import View from './view';
 
 class ViewEngine {

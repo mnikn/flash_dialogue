@@ -1,3 +1,4 @@
+import DeleteIcon from '@mui/icons-material/Delete';
 import {
   Button,
   Card,
@@ -14,12 +15,12 @@ import {
   Tabs,
   TextField,
 } from '@mui/material';
-import { useContext, useState } from 'react';
+import { useCallback, useContext, useEffect, useState } from 'react';
 import { SchemaConfigEditor } from 'react-dynamic-material-form';
-import DeleteIcon from '@mui/icons-material/Delete';
-import Context from '../context';
-import { ProjectSettings } from 'renderer/core/model/dialogue_tree';
 import GridForm from 'renderer/components/grid_form';
+import { ProjectSettings } from 'renderer/core/model/dialogue_tree';
+import useListWithKey from 'renderer/hooks/use_list_with_key';
+import Context from '../context';
 
 const SettingsDialog = ({ close }: { close: () => void }) => {
   const [currentTab, setCurrentTab] = useState(0);
@@ -39,10 +40,26 @@ const SettingsDialog = ({ close }: { close: () => void }) => {
     }
   };
 
+  const [
+    actors,
+    { push: pushActor, removeAt: removeActor, updateAt: updateActor },
+  ] = useListWithKey(globalSettings.actors);
+
+  useEffect(() => {
+    setGlobalSettings((prev) => {
+      return {
+        ...prev,
+        actors: actors.map((item) => {
+          return item.data;
+        }),
+      };
+    });
+  }, [actors]);
+
   const ActorSettings = () => {
     return (
       <Card>
-        <CardHeader subheader="Actors"></CardHeader>
+        <CardHeader subheader="Actors" />
         <CardContent
           sx={{
             maxHeight: '400px',
@@ -50,10 +67,10 @@ const SettingsDialog = ({ close }: { close: () => void }) => {
           }}
         >
           <Stack spacing={2}>
-            {globalSettings.actors.map((actor, i) => {
+            {actors.map((actor, i) => {
               return (
                 <Stack
-                  key={i}
+                  key={actor.key}
                   spacing={1}
                   direction="row"
                   sx={{ alignItems: 'center' }}
@@ -64,11 +81,11 @@ const SettingsDialog = ({ close }: { close: () => void }) => {
                       style={{ flexGrow: 1 }}
                       label="Actor id"
                       required
-                      value={actor.id}
+                      value={actor.data.id}
                       onChange={(e) => {
-                        actor.id = e.target.value;
-                        setGlobalSettings((prev) => {
-                          return { ...prev };
+                        updateActor(i, {
+                          ...actor.data,
+                          id: e.target.value,
                         });
                       }}
                     />
@@ -77,11 +94,11 @@ const SettingsDialog = ({ close }: { close: () => void }) => {
                       style={{ flexGrow: 1 }}
                       label="Actor name"
                       required
-                      value={actor.name}
+                      value={actor.data.name}
                       onChange={(e) => {
-                        actor.name = e.target.value;
-                        setGlobalSettings((prev) => {
-                          return { ...prev };
+                        updateActor(i, {
+                          ...actor.data,
+                          name: e.target.value,
                         });
                       }}
                     />
@@ -90,10 +107,11 @@ const SettingsDialog = ({ close }: { close: () => void }) => {
                   <Card sx={{ width: '300px' }}>
                     <CardContent>
                       <Stack spacing={2} direction="column">
-                        {actor.protraits.map((protrait, j) => {
+                        {actor.data.protraits.map((protrait, j) => {
                           return (
                             <Stack
-                              key={actor.id + '-' + j}
+                              /* eslint-disable-next-line */
+                              key={actor.data.id + '-' + j}
                               spacing={1}
                               direction="row"
                               sx={{ alignItems: 'center' }}
@@ -106,8 +124,8 @@ const SettingsDialog = ({ close }: { close: () => void }) => {
                                 value={protrait.id}
                                 onChange={(e) => {
                                   protrait.id = e.target.value;
-                                  setGlobalSettings((prev) => {
-                                    return { ...prev };
+                                  updateActor(i, {
+                                    ...actor.data,
                                   });
                                 }}
                               />
@@ -120,8 +138,9 @@ const SettingsDialog = ({ close }: { close: () => void }) => {
                                     type="file"
                                     sx={{ display: 'none' }}
                                     onChange={(e) => {
-                                      setGlobalSettings((prev) => {
-                                        actor.protraits = actor.protraits.map(
+                                      updateActor(i, {
+                                        ...actor.data,
+                                        protraits: actor.data.protraits.map(
                                           (p, index) =>
                                             index === j
                                               ? {
@@ -129,9 +148,7 @@ const SettingsDialog = ({ close }: { close: () => void }) => {
                                                   pic: e.target.files[0].path,
                                                 }
                                               : p
-                                        );
-
-                                        return { ...prev };
+                                        ),
                                       });
                                     }}
                                   />
@@ -168,13 +185,11 @@ const SettingsDialog = ({ close }: { close: () => void }) => {
                               <DeleteIcon
                                 sx={{ cursor: 'pointer' }}
                                 onClick={() => {
-                                  setGlobalSettings((prev) => {
-                                    actor.protraits = actor.protraits.filter(
+                                  updateActor(i, {
+                                    ...actor.data,
+                                    protraits: actor.data.protraits.filter(
                                       (_, index) => index !== j
-                                    );
-                                    return {
-                                      ...prev,
-                                    };
+                                    ),
                                   });
                                 }}
                               />
@@ -184,14 +199,12 @@ const SettingsDialog = ({ close }: { close: () => void }) => {
                         <Button
                           variant="contained"
                           onClick={() => {
-                            setGlobalSettings((prev) => {
-                              actor.protraits.push({
-                                id: '',
-                                pic: '',
-                              });
-                              return {
-                                ...prev,
-                              };
+                            actor.data.protraits.push({
+                              id: '',
+                              pic: '',
+                            });
+                            updateActor(i, {
+                              ...actor.data,
                             });
                           }}
                         >
@@ -203,12 +216,7 @@ const SettingsDialog = ({ close }: { close: () => void }) => {
                   <DeleteIcon
                     sx={{ cursor: 'pointer' }}
                     onClick={() => {
-                      setGlobalSettings((prev) => {
-                        return {
-                          ...prev,
-                          actors: prev.actors.filter((_, index) => i !== index),
-                        };
-                      });
+                      removeActor(i);
                     }}
                   />
                 </Stack>
@@ -218,18 +226,10 @@ const SettingsDialog = ({ close }: { close: () => void }) => {
             <Button
               variant="contained"
               onClick={() => {
-                setGlobalSettings((prev) => {
-                  return {
-                    ...prev,
-                    actors: [
-                      ...prev.actors,
-                      {
-                        id: '',
-                        name: '',
-                        protraits: [],
-                      },
-                    ],
-                  };
+                pushActor({
+                  id: '',
+                  name: '',
+                  protraits: [],
                 });
               }}
             >
@@ -240,6 +240,21 @@ const SettingsDialog = ({ close }: { close: () => void }) => {
       </Card>
     );
   };
+
+  const onGridFromChange = useCallback(
+    (i18nForm) => {
+      if (!owner) {
+        return;
+      }
+      setGlobalSettings((prev) => {
+        return {
+          ...prev,
+          i18n: i18nForm,
+        };
+      });
+    },
+    [owner]
+  );
 
   return (
     <Dialog open onClose={handleOnClose}>
@@ -266,14 +281,7 @@ const SettingsDialog = ({ close }: { close: () => void }) => {
                 <GridForm
                   data={globalSettings.i18n}
                   createNewItem={() => ''}
-                  onChange={(i18nForm) => {
-                    setGlobalSettings((prev) => {
-                      return {
-                        ...prev,
-                        i18n: [...i18nForm],
-                      };
-                    });
-                  }}
+                  onChange={onGridFromChange}
                   renderItem={(val, onChange) => {
                     return (
                       <TextField

@@ -42,7 +42,7 @@ const Menu = () => {
         <MenuItem
           onClick={async () => {
             localStorage.removeItem(RECENT_PROJECT_PATH);
-              owner?.owner.dataProvider.load();
+            owner?.owner.dataProvider.load();
             closeMenu();
           }}
         >

@@ -1,13 +1,5 @@
 import PreviewIcon from '@mui/icons-material/Preview';
-import {
-  Alert,
-  Button,
-  CircularProgress,
-  Menu as MuiMenu,
-  Stack,
-  Box,
-  Select,
-} from '@mui/material';
+import { Box, Button, Menu as MuiMenu, Select, Stack } from '@mui/material';
 import MenuItem from '@mui/material/MenuItem';
 import * as d3 from 'd3';
 import {
@@ -79,7 +71,9 @@ const NodeCard = ({
       }}
       onClick={(e) => {
         if (e.defaultPrevented) return;
-        select && select();
+        if (select) {
+          select();
+        }
       }}
       ref={(dom) => {
         if (dom && canDrag) {
@@ -182,6 +176,7 @@ const View = ({
   // handle zoom
   useLayoutEffect(() => {
     d3.select(container).call(
+      /* eslint-disable func-names */
       (d3 as any).zoom().on('zoom', function () {
         const transfromRes = d3.zoomTransform(this);
         owner.zoom = transfromRes.k;
@@ -193,7 +188,7 @@ const View = ({
     );
 
     d3.select(container).on('dblclick.zoom', null);
-  }, [owner]);
+  }, [owner, container]);
 
   useLayoutEffect(() => {
     const json = rootData.toRenderJson();
@@ -214,7 +209,7 @@ const View = ({
     const tree = d3.tree().nodeSize([240, 700]);
     tree(root);
 
-    root.descendants().forEach((d: any, i: any) => {
+    root.descendants().forEach((d: any) => {
       d.id = d.data.id;
       d._children = d.children;
     });
@@ -273,12 +268,12 @@ const View = ({
           const nodeSource = {
             ...(c as any).source,
           };
-          nodeSource.x = nodeSource.x + 80;
-          nodeSource.y = nodeSource.y + 400;
+          nodeSource.x += 80;
+          nodeSource.y += 400;
           const targetSource = {
             ...(c as any).target,
           };
-          targetSource.x = targetSource.x + 80;
+          targetSource.x += 80;
 
           links.push({
             from: nodeSource,
@@ -537,7 +532,7 @@ const View = ({
     const previewJson = () => {
       setDialogueJsonDialogueVisible(true);
     };
-    const saveProject = async () => {
+    const saveProjectData = async () => {
       setSaving(true);
       await owner.owner.dataProvider.save();
       setTimeout(() => {
@@ -549,7 +544,7 @@ const View = ({
       setSettingDialogVisible(true);
     };
     const unlistenPreviewJson = listenPreviewDialogueJson(previewJson);
-    const unlistenSaveProject = listenSaveProject(saveProject);
+    const unlistenSaveProject = listenSaveProject(saveProjectData);
     const unlistenShowProjectSettigs =
       listenShowProjectSettings(showProjectSettings);
     return () => {
@@ -761,7 +756,7 @@ const View = ({
               overflow: 'inherit',
               pointerEvents: 'none',
             }}
-          ></svg>
+          />
           <div
             id="connections"
             style={{
@@ -919,6 +914,7 @@ const View = ({
               {owner.owner.dataProvider.data.projectSettings.i18n.map(
                 (item2, j) => {
                   return (
+                    /* eslint-disable-next-line */
                     <MenuItem key={j} value={item2}>
                       {item2}
                     </MenuItem>
@@ -941,7 +937,7 @@ const View = ({
         </Stack>
       </div>
 
-      {saving && <Loading content={'Saving...Please wait for a while'} />}
+      {saving && <Loading content="Saving...Please wait for a while" />}
 
       <DialogueToolbar />
     </Context.Provider>

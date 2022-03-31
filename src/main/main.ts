@@ -126,8 +126,8 @@ ipcMain.on('deleteFolderFiles', async (event, arg = {}) => {
   }
   const res = fs.readdirSync(arg.path);
 
-  for (const path of res) {
-    const filePath = `${arg.path}\\${path}`;
+  for (const resPath of res) {
+    const filePath = `${arg.path}\\${resPath}`;
     fs.rmSync(filePath);
   }
   event.reply('deleteFolderFiles', res);

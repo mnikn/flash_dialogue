@@ -114,6 +114,9 @@ class DialogueTreeModel {
         };
         return instance;
       }
+      default: {
+        break;
+      }
     }
     return new SentenceNode();
   }
