@@ -77,6 +77,8 @@ const DialogueToolbar = () => {
                     background: '#d08159',
                   },
                   userSelect: 'none',
+                  paddingLeft: '1rem',
+                  paddingRight: '1rem',
                 }}
                 onClick={() => {
                   owner.owner.dataProvider.currentDialogue = dialogue;

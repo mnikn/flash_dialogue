@@ -13,6 +13,17 @@ contextBridge.exposeInMainWorld('electron', {
         ipcRenderer.send('readJsonFile', arg);
       });
     },
+    loadImageFile(arg) {
+      return new Promise((resolve) => {
+        ipcRenderer.once('loadImageFile', (_, res) => {
+          resolve(res);
+        });
+        ipcRenderer.send('loadImageFile', arg);
+      });
+    },
+    close() {
+      ipcRenderer.send('realClose');
+    },
     saveJsonFile(arg) {
       return new Promise((resolve) => {
         ipcRenderer.once('saveJsonFile', (_, res) => {

@@ -55,7 +55,7 @@ const FormDialog = ({
     return [
       ...res,
       { id: item.id, name: item.name, type: 'actor' },
-      ...item.protraits.map((p) => {
+      ...item.portraits.map((p) => {
         return {
           ...p,
           actor: item,
@@ -104,7 +104,7 @@ const FormDialog = ({
                               pic:
                                 globalSettings.actors
                                   .find((a) => a.id === actorId)
-                                  ?.protraits.find((p) => {
+                                  ?.portraits.find((p) => {
                                     return p.id === portraitId;
                                   })?.pic || '',
                             },

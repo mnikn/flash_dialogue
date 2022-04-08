@@ -89,8 +89,8 @@
     ],
     "publish": {
       "provider": "github",
-      "owner": "quick-dialogue",
-      "repo": "quick-dialogue"
+      "owner": "flash-dialogue",
+      "repo": "flash-dialogue"
     }
   },
   "repository": {
@@ -100,7 +100,7 @@
   "author": {
     "name": "Electron React Boilerplate Maintainers",
     "email": "electronreactboilerplate@gmail.com",
-    "url": "https://quick-dialogue.js.org"
+    "url": "https://flash-dialogue.js.org"
   },
   "contributors": [
     {
@@ -239,6 +239,7 @@
     "electron-updater": "^4.6.5",
     "eventemitter3": "^4.0.7",
     "history": "^5.2.0",
+    "js-base64": "^3.7.2",
     "mind-elixir": "^0.19.1",
     "monaco-editor": "^0.31.1",
     "react": "^17.0.2",

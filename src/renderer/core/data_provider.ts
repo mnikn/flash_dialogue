@@ -69,59 +69,65 @@ class DataProvider {
     } else {
       // get data from recent project
       const projectPath = localStorage.getItem(RECENT_PROJECT_PATH);
-      const settingPath = `${projectPath}\\settings.json`;
-      const res = await window.electron.ipcRenderer.readJsonFile({
-        path: settingPath,
-      });
-
-      const plainData: DialogueTreeJson = {
-        dialogues: [],
-        projectSettings: {
-          actors: [],
-          i18n: [],
-        },
-        i18nData: {},
-      };
-      plainData.projectSettings = JSON.parse(res.res);
-
-      const dialogueFolder = `${projectPath}\\dialogues`;
-      const files = await window.electron.ipcRenderer.readFolder({
-        path: dialogueFolder,
-      });
-
-      for (const f of files) {
-        const path = `${dialogueFolder}\\${f}`;
-        const dialogueDataRes = await window.electron.ipcRenderer.readJsonFile({
-          path,
-        });
-        plainData.dialogues.push(JSON.parse(dialogueDataRes.res));
-      }
-      if (plainData.dialogues.length <= 0) {
-        plainData.dialogues.push(
-          new RootNode({
-            title: 'Dialogue 1',
-          }).toRenderJson()
-        );
-      }
-
-      const i18nFolder = `${projectPath}\\i18n`;
-      const i18nFiles = await window.electron.ipcRenderer.readFolder({
-        path: i18nFolder,
-      });
-      for (const f of i18nFiles) {
-        const path = `${i18nFolder}\\${f}`;
-        const i18nDataRes = await window.electron.ipcRenderer.readJsonFile({
-          path,
-        });
-
-        const lang = f.split('.')[0];
-        plainData.i18nData[lang] = JSON.parse(i18nDataRes.res);
-      }
-
-      this.data = new DialogueTreeModel(plainData);
+      this.data = await this.getProjectData(projectPath);
     }
 
     this.currentDialogue = this.data.dialogues[0];
+  }
+
+  public async getProjectData(projectPath: string): Promise<DialogueTreeModel> {
+    const settingPath = `${projectPath}\\settings.json`;
+    const res = await window.electron.ipcRenderer.readJsonFile({
+      path: settingPath,
+    });
+
+    const plainData: DialogueTreeJson = {
+      dialogues: [],
+      projectSettings: {
+        actors: [],
+        i18n: [],
+      },
+      i18nData: {
+        en: {},
+      },
+    };
+    plainData.projectSettings = JSON.parse(res.res);
+
+    const dialogueFolder = `${projectPath}\\dialogues`;
+    const files = await window.electron.ipcRenderer.readFolder({
+      path: dialogueFolder,
+    });
+
+    for (const f of files) {
+      const path = `${dialogueFolder}\\${f}`;
+      const dialogueDataRes = await window.electron.ipcRenderer.readJsonFile({
+        path,
+      });
+      plainData.dialogues.push(JSON.parse(dialogueDataRes.res));
+    }
+    if (plainData.dialogues.length <= 0) {
+      plainData.dialogues.push(
+        new RootNode({
+          title: 'Dialogue 1',
+        }).toRenderJson()
+      );
+    }
+
+    const i18nFolder = `${projectPath}\\i18n`;
+    const i18nFiles = await window.electron.ipcRenderer.readFolder({
+      path: i18nFolder,
+    });
+    for (const f of i18nFiles) {
+      const path = `${i18nFolder}\\${f}`;
+      const i18nDataRes = await window.electron.ipcRenderer.readJsonFile({
+        path,
+      });
+
+      const lang = f.split('.')[0];
+      plainData.i18nData[lang] = JSON.parse(i18nDataRes.res);
+    }
+
+    return new DialogueTreeModel(plainData);
   }
 
   public async save() {

@@ -10,6 +10,8 @@ import {
   useRef,
   useState,
 } from 'react';
+import Confimration from 'renderer/components/confirmation';
+import { RECENT_PROJECT_PATH } from 'renderer/constants/storage';
 import useEventState from 'renderer/hooks/use_event_state';
 import Node from '../model/node';
 import BranchNode from '../model/node/branch';
@@ -153,6 +155,8 @@ const View = ({
 
   const [dialogueJsonDialogueVisible, setDialogueJsonDialogueVisible] =
     useState(false);
+
+  const [saveConfirmationVisible, setSaveConfirmationVisible] = useState(false);
 
   const handleContextMenu = (event: any) => {
     event.preventDefault();
@@ -325,17 +329,17 @@ const View = ({
 
   const doAppendChildNode = useCallback(
     (type: 'sentence' | 'branch') => {
-      if (!selectingNode) {
+      if (!owner.selectingNode) {
         return;
       }
-      appendChildNode(selectingNode, type);
+      appendChildNode(owner.selectingNode, type);
       setRootData((prev) => {
         const updateNode = new RootNode(prev.data, prev.id);
         updateNode.children = prev.children;
         return updateNode;
       });
     },
-    [selectingNode]
+    [owner]
   );
 
   const doDeleteNode = useCallback(() => {
@@ -356,14 +360,24 @@ const View = ({
     owner.selectingNode = null;
   }, [owner]);
 
+  // shortcut handle
   useLayoutEffect(() => {
     const onKeyDown = async (e: KeyboardEvent) => {
+      if (e.code === 'Tab') {
+        e.preventDefault();
+      }
+
       /* e.preventDefault(); */
+      if (!owner) {
+        return;
+      }
+
       if (owner.editing) {
         return;
       }
 
       if (owner.selectingNode) {
+        const currentSelectingNode = owner.selectingNode;
         if (e.code === 'Enter') {
           doAppendSameLevelNode(e.ctrlKey ? 'branch' : 'sentence');
         }
@@ -380,6 +394,47 @@ const View = ({
           owner.editing = true;
           showEdit();
         }
+
+        console.log(e.code);
+        if (e.code === 'Escape') {
+          owner.selectingNode = null;
+        }
+
+        if (e.code === 'ArrowLeft' && currentSelectingNode.parent) {
+          owner.selectingNode = currentSelectingNode.parent;
+        }
+        if (
+          e.code === 'ArrowRight' &&
+          currentSelectingNode.children.length > 0
+        ) {
+          owner.selectingNode = currentSelectingNode.children[0];
+        }
+        if (e.code === 'ArrowUp') {
+          const index =
+            (currentSelectingNode.parent?.children || []).findIndex((node) => {
+              return node.id === currentSelectingNode.id;
+            }) - 1;
+          if (index >= 0) {
+            owner.selectingNode = currentSelectingNode.parent?.children[
+              index
+            ] as Node<any>;
+          }
+        }
+        if (e.code === 'ArrowDown') {
+          const index = (currentSelectingNode.parent?.children || []).findIndex(
+            (node) => {
+              return node.id === currentSelectingNode.id;
+            }
+          );
+          if (
+            index !== -1 &&
+            (currentSelectingNode.parent?.children.length || -1) > index + 1
+          ) {
+            owner.selectingNode = currentSelectingNode.parent?.children[
+              index + 1
+            ] as Node<any>;
+          }
+        }
       }
 
       if (e.code === 'KeyS' && e.ctrlKey && !owner.owner.dataProvider.saving) {
@@ -392,6 +447,18 @@ const View = ({
 
       if (e.code === 'KeyP' && e.ctrlKey && e.shiftKey) {
         previewDialogueJson();
+      }
+
+      // switch lang shortcut
+      if (e.code.includes('Digit') && e.ctrlKey) {
+        const index = Number(e.code.split('Digit')[1]) - 1;
+        if (
+          index >= 0 &&
+          owner.owner.dataProvider.data.projectSettings.i18n.length > index
+        ) {
+          owner.owner.dataProvider.currentLang =
+            owner.owner.dataProvider.data.projectSettings.i18n[index];
+        }
       }
     };
     document.addEventListener('keydown', onKeyDown);
@@ -408,8 +475,18 @@ const View = ({
         name: 'Edit',
         action: () => showEdit(),
       },
+      {
+        key: 'root_insert_child_sentence',
+        name: 'Insert child sentence',
+        action: () => doAppendChildNode('sentence'),
+      },
+      {
+        key: 'root_insert_child_branch',
+        name: 'Insert child branch',
+        action: () => doAppendChildNode('branch'),
+      },
     ];
-  }, []);
+  }, [doAppendChildNode]);
   const sentenceActionMenu = useMemo(() => {
     let insertChildActions: any[] = [];
     insertChildActions = [
@@ -506,6 +583,33 @@ const View = ({
   useEffect(() => {
     owner.owner.dataProvider.currentDialogue = rootData;
   }, [owner, rootData]);
+
+  useEffect(() => {
+    const onClose = async () => {
+      const projectPath = localStorage.getItem(RECENT_PROJECT_PATH);
+      if (!projectPath) {
+        setSaveConfirmationVisible(true);
+        return;
+      }
+
+      const val = await owner.owner.dataProvider.getProjectData(projectPath);
+      console.log(owner.owner.dataProvider.data.toJson(), val.toJson());
+      if (
+        JSON.stringify(owner.owner.dataProvider.data.toJson()) !==
+          JSON.stringify(val.toJson()) ||
+        JSON.stringify(owner.owner.dataProvider.data.i18nData) !==
+          JSON.stringify(val.i18nData)
+      ) {
+        setSaveConfirmationVisible(true);
+      } else {
+        window.electron.ipcRenderer.close();
+      }
+    };
+    window.electron.ipcRenderer.on('close', onClose);
+    return () => {
+      window.electron.ipcRenderer.removeAllListeners('close');
+    };
+  }, [owner]);
 
   useEffect(() => {
     linkData.forEach((item) => {
@@ -679,7 +783,6 @@ const View = ({
                     }}
                     endEdit={(confirm, form) => {
                       owner.editing = false;
-                      owner.selectingNode = null;
                       if (confirm) {
                         item.data = form;
                         setRootData((prev) => {
@@ -940,6 +1043,21 @@ const View = ({
       {saving && <Loading content="Saving...Please wait for a while" />}
 
       <DialogueToolbar />
+
+      {saveConfirmationVisible && (
+        <Confimration
+          close={() => {
+            setSaveConfirmationVisible(false);
+          }}
+          onAction={(confirmation: boolean) => {
+            if (confirmation) {
+              window.electron.ipcRenderer.close();
+            } else {
+              setSaveConfirmationVisible(false);
+            }
+          }}
+        />
+      )}
     </Context.Provider>
   );
 };

@@ -5,12 +5,17 @@ import BranchNode from './node/branch';
 import { NodeJsonData } from './node';
 import { Link } from './node/link';
 
+export interface ImageFile {
+  path: string;
+  data: string;
+}
+
 export interface Actor {
   id: string;
   name: string;
-  protraits: {
+  portraits: {
     id: string;
-    pic: string;
+    pic: ImageFile;
   }[];
 }
 
@@ -26,7 +31,9 @@ class DialogueTreeModel {
     i18n: ['en'],
   };
 
-  public i18nData: { [key: string]: string } = {};
+  public i18nData: { [key: string]: any } = {
+    en: {},
+  };
 
   constructor(jsonData: DialogueTreeJson) {
     this.dialogues = jsonData.dialogues.map((item) => {

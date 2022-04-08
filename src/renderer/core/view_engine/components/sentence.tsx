@@ -12,10 +12,10 @@ import {
   MenuItem,
   Select,
   Stack,
-  TextField,
   Typography,
 } from '@mui/material';
 import { useContext, useEffect, useState } from 'react';
+import I18nTextField from 'renderer/components/i18n_text_field';
 import { ProjectSettings } from 'renderer/core/model/dialogue_tree';
 import { SentenceNodeJsonData } from 'renderer/core/model/node/sentence';
 import { getFinalImgPath } from 'renderer/utils/pic';
@@ -55,7 +55,7 @@ const FormDialog = ({
     return [
       ...res,
       { id: item.id, name: item.name, type: 'actor' },
-      ...item.protraits.map((p) => {
+      ...item.portraits.map((p) => {
         return {
           ...p,
           actor: item,
@@ -65,6 +65,13 @@ const FormDialog = ({
     ];
   }, []);
 
+  const i18nContents = Object.keys(
+    owner?.owner.dataProvider.data.i18nData || {}
+  ).reduce((res: any, key: string) => {
+    res[key] =
+      owner?.owner.dataProvider.data.i18nData[key][data.data.content] || '';
+    return res;
+  }, {});
   return (
     <Dialog open onClose={handleOnClose}>
       <DialogTitle>Edit sentence</DialogTitle>
@@ -104,7 +111,7 @@ const FormDialog = ({
                               pic:
                                 globalSettings.actors
                                   .find((a) => a.id === actorId)
-                                  ?.protraits.find((p) => {
+                                  ?.portraits.find((p) => {
                                     return p.id === portraitId;
                                   })?.pic || '',
                             },
@@ -173,13 +180,17 @@ const FormDialog = ({
             </FormControl>
           </Stack>
 
-          <TextField
+          <I18nTextField
+            autoFocus
             margin="dense"
-            label="Content i18n key"
+            label="Content"
             type="text"
-            required
-            value={form.data.content}
-            onChange={(e: any) => {
+            value={form.contentI18n}
+            fullWidth
+            multiline
+            i18nKeyValue={form.data.content}
+            i18nContent={i18nContents}
+            onI18nKeyChange={(e: any) => {
               setForm((prev: any) => {
                 return {
                   ...prev,
@@ -190,15 +201,6 @@ const FormDialog = ({
                 };
               });
             }}
-          />
-          <TextField
-            autoFocus
-            margin="dense"
-            label="Content"
-            type="text"
-            value={form.contentI18n}
-            fullWidth
-            multiline
             onChange={(e: any) => {
               if (form.data.content) {
                 setForm((prev) => {
@@ -295,6 +297,7 @@ const Sentence = ({
     owner?.owner.dataProvider.data.i18nData[
       owner?.owner.dataProvider.currentLang
     ][data.data.content] || '';
+
   return (
     <>
       <NodeCard

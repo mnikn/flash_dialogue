@@ -9,17 +9,23 @@ const GridItem = ({
   onDelete,
   renderItem,
   canDelete,
+  index,
 }: {
   item: any;
+  index: number;
   onChange: (val: any) => void;
   onDelete: () => void;
-  renderItem: (val: any, onChange: (val: any) => void) => ReactNode;
-  canDelete?: (val: any) => boolean;
+  renderItem: (
+    val: any,
+    index: number,
+    onChange: (val: any) => void
+  ) => ReactNode;
+  canDelete?: (val: any, i: number) => boolean;
 }) => (
   <Grid item xs={6}>
     <Stack spacing={1} direction="row" sx={{ alignItems: 'center' }}>
-      {renderItem(item, onChange)}
-      {(!canDelete || canDelete(item)) && (
+      {renderItem(item, index, onChange)}
+      {(!canDelete || canDelete(item, index)) && (
         <DeleteItcon sx={{ cursor: 'pointer' }} onClick={onDelete} />
       )}
     </Stack>
@@ -42,8 +48,12 @@ const GridForm = ({
   onItemRemove?: (i: number) => void;
   onItemUpdate?: (i: number, val: any) => void;
   createNewItem: () => any;
-  renderItem: (val: any, onChange: (val: any) => void) => ReactNode;
-  canDelete?: (val: any) => boolean;
+  renderItem: (
+    val: any,
+    index: number,
+    onChange: (val: any) => void
+  ) => ReactNode;
+  canDelete?: (val: any, i: number) => boolean;
 }) => {
   const [list, { updateAt, removeAt, push }] = useListWithKey(data);
 
@@ -59,6 +69,7 @@ const GridForm = ({
             <GridItem
               key={item.key}
               item={item.data}
+              index={i}
               renderItem={renderItem}
               onChange={(val) => {
                 updateAt(i, val);

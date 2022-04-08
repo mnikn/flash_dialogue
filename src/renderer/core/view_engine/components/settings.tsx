@@ -18,6 +18,7 @@ import {
 import { useCallback, useContext, useEffect, useState } from 'react';
 import { SchemaConfigEditor } from 'react-dynamic-material-form';
 import GridForm from 'renderer/components/grid_form';
+import * as Base64 from 'js-base64';
 import { ProjectSettings } from 'renderer/core/model/dialogue_tree';
 import useListWithKey from 'renderer/hooks/use_list_with_key';
 import Context from '../context';
@@ -37,6 +38,12 @@ const SettingsDialog = ({ close }: { close: () => void }) => {
   const submit = () => {
     if (owner) {
       owner.owner.dataProvider.data.projectSettings = globalSettings;
+
+      globalSettings.i18n.forEach((i18nKey) => {
+        if (!owner.owner.dataProvider.data.i18nData[i18nKey]) {
+          owner.owner.dataProvider.data.i18nData[i18nKey] = {};
+        }
+      });
     }
   };
 
@@ -107,7 +114,7 @@ const SettingsDialog = ({ close }: { close: () => void }) => {
                   <Card sx={{ width: '300px' }}>
                     <CardContent>
                       <Stack spacing={2} direction="column">
-                        {actor.data.protraits.map((protrait, j) => {
+                        {actor.data.portraits.map((portrait, j) => {
                           return (
                             <Stack
                               /* eslint-disable-next-line */
@@ -119,33 +126,42 @@ const SettingsDialog = ({ close }: { close: () => void }) => {
                               <TextField
                                 size="small"
                                 style={{ flexGrow: 1 }}
-                                label="Protrait id"
+                                label="Portrait id"
                                 required
-                                value={protrait.id}
+                                value={portrait.id}
                                 onChange={(e) => {
-                                  protrait.id = e.target.value;
+                                  portrait.id = e.target.value;
                                   updateActor(i, {
                                     ...actor.data,
                                   });
                                 }}
                               />
 
-                              {!protrait.pic && (
+                              {!portrait.pic.data && (
                                 <label htmlFor="contained-button-file">
                                   <Input
                                     accept="image/*"
                                     id="contained-button-file"
                                     type="file"
                                     sx={{ display: 'none' }}
-                                    onChange={(e) => {
+                                    onChange={async (e: any) => {
+                                      const { res } =
+                                        await window.electron.ipcRenderer.loadImageFile(
+                                          { path: e.target.files[0].path }
+                                        );
                                       updateActor(i, {
                                         ...actor.data,
-                                        protraits: actor.data.protraits.map(
+                                        portraits: actor.data.portraits.map(
                                           (p, index) =>
                                             index === j
                                               ? {
-                                                  ...protrait,
-                                                  pic: e.target.files[0].path,
+                                                  ...portrait,
+                                                  pic: {
+                                                    path: Base64.encode(
+                                                      e.target.files[0].path
+                                                    ),
+                                                    data: res,
+                                                  },
                                                 }
                                               : p
                                         ),
@@ -158,7 +174,7 @@ const SettingsDialog = ({ close }: { close: () => void }) => {
                                 </label>
                               )}
 
-                              {protrait.pic && (
+                              {portrait.pic.data && (
                                 <div
                                   style={{
                                     width: '32px',
@@ -171,7 +187,7 @@ const SettingsDialog = ({ close }: { close: () => void }) => {
                                   }}
                                 >
                                   <img
-                                    src={'file://' + protrait.pic}
+                                    src={`data:image/png;base64, ${portrait.pic.data}`}
                                     style={{
                                       height: '100%',
                                       width: '100%',
@@ -187,7 +203,7 @@ const SettingsDialog = ({ close }: { close: () => void }) => {
                                 onClick={() => {
                                   updateActor(i, {
                                     ...actor.data,
-                                    protraits: actor.data.protraits.filter(
+                                    portraits: actor.data.portraits.filter(
                                       (_, index) => index !== j
                                     ),
                                   });
@@ -199,16 +215,16 @@ const SettingsDialog = ({ close }: { close: () => void }) => {
                         <Button
                           variant="contained"
                           onClick={() => {
-                            actor.data.protraits.push({
+                            actor.data.portraits.push({
                               id: '',
-                              pic: '',
+                              pic: { path: '', data: '' },
                             });
                             updateActor(i, {
                               ...actor.data,
                             });
                           }}
                         >
-                          Add Protrait
+                          Add Portrait
                         </Button>
                       </Stack>
                     </CardContent>
@@ -229,7 +245,7 @@ const SettingsDialog = ({ close }: { close: () => void }) => {
                 pushActor({
                   id: '',
                   name: '',
-                  protraits: [],
+                  portraits: [],
                 });
               }}
             >
@@ -282,7 +298,7 @@ const SettingsDialog = ({ close }: { close: () => void }) => {
                   data={globalSettings.i18n}
                   createNewItem={() => ''}
                   onChange={onGridFromChange}
-                  renderItem={(val, onChange) => {
+                  renderItem={(val, i, onChange) => {
                     return (
                       <TextField
                         margin="dense"
@@ -291,7 +307,7 @@ const SettingsDialog = ({ close }: { close: () => void }) => {
                         size="small"
                         fullWidth
                         required
-                        disabled={val === 'en'}
+                        disabled={i === 0}
                         value={val}
                         onChange={(e: any) => {
                           onChange(e.target.value);
@@ -299,8 +315,8 @@ const SettingsDialog = ({ close }: { close: () => void }) => {
                       />
                     );
                   }}
-                  canDelete={(val: any) => {
-                    return val !== 'en';
+                  canDelete={(_: any, i: number) => {
+                    return i !== 0;
                   }}
                 />
               </CardContent>

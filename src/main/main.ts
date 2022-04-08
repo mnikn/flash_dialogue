@@ -24,11 +24,20 @@ export default class AppUpdater {
 }
 
 let mainWindow: BrowserWindow | null = null;
+let needClose = false;
 
 ipcMain.on('ipc-example', async (event, arg) => {
   const msgTemplate = (pingPong: string) => `IPC test: ${pingPong}`;
   console.log(msgTemplate(arg));
   event.reply('ipc-example', msgTemplate('pong'));
+});
+
+ipcMain.on('realClose', () => {
+  needClose = true;
+  if (!mainWindow) {
+    throw new Error('"mainWindow" is not defined');
+  }
+  mainWindow.close();
 });
 
 ipcMain.on('openJsonFile', async (_, arg) => {
@@ -62,6 +71,15 @@ ipcMain.on('readJsonFile', async (event, arg) => {
     event.reply('readJsonFile', { res: content, arg });
   } else {
     event.reply('readJsonFile', { res: null, arg });
+  }
+});
+
+ipcMain.on('loadImageFile', async (event, arg) => {
+  if (fs.existsSync(arg.path)) {
+    const content = fs.readFileSync(arg.path, { encoding: 'base64' });
+    event.reply('loadImageFile', { res: content, arg });
+  } else {
+    event.reply('loadImageFile', { res: null, arg });
   }
 });
 
@@ -222,6 +240,17 @@ const createWindow = async () => {
   mainWindow.webContents.setWindowOpenHandler((edata) => {
     shell.openExternal(edata.url);
     return { action: 'deny' };
+  });
+
+  mainWindow.on('close', (e) => {
+    if (!mainWindow) {
+      throw new Error('"mainWindow" is not defined');
+    }
+    console.log('event close: ', needClose);
+    if (!needClose) {
+      e.preventDefault();
+      mainWindow.webContents.send('close');
+    }
   });
 
   // Remove this if your app does not use auto updates
