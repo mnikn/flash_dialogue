@@ -12,10 +12,11 @@ import {
   MenuItem,
   Select,
   Stack,
+  TextField,
   Typography,
 } from '@mui/material';
 import { useContext, useEffect, useState } from 'react';
-import I18nTextField from 'renderer/components/i18n_text_field';
+import { I18nTextField, COLOR } from '@mnikn/react-codebase';
 import { ProjectSettings } from 'renderer/core/model/dialogue_tree';
 import { SentenceNodeJsonData } from 'renderer/core/model/node/sentence';
 import { getFinalImgPath } from 'renderer/utils/pic';
@@ -65,13 +66,14 @@ const FormDialog = ({
     ];
   }, []);
 
-  const i18nContents = Object.keys(
-    owner?.owner.dataProvider.data.i18nData || {}
-  ).reduce((res: any, key: string) => {
-    res[key] =
-      owner?.owner.dataProvider.data.i18nData[key][data.data.content] || '';
-    return res;
-  }, {});
+  /* const i18nContents = Object.keys(
+   *   owner?.owner.dataProvider.data.i18nData || {}
+   * ).reduce((res: any, key: string) => {
+   *   res[key] =
+   *     owner?.owner.dataProvider.data.i18nData[key][data.data.content] || '';
+   *   return res;
+   * }, {}); */
+
   return (
     <Dialog open onClose={handleOnClose}>
       <DialogTitle>Edit sentence</DialogTitle>
@@ -180,7 +182,7 @@ const FormDialog = ({
             </FormControl>
           </Stack>
 
-          <I18nTextField
+          <TextField
             autoFocus
             margin="dense"
             label="Content"
@@ -188,20 +190,10 @@ const FormDialog = ({
             value={form.contentI18n}
             fullWidth
             multiline
-            i18nKeyValue={form.data.content}
-            i18nContent={i18nContents}
-            onI18nKeyChange={(e: any) => {
-              setForm((prev: any) => {
-                return {
-                  ...prev,
-                  data: {
-                    ...prev.data,
-                    content: e.target.value,
-                  },
-                };
-              });
-            }}
             onChange={(e: any) => {
+              if (!owner) {
+                return;
+              }
               if (form.data.content) {
                 setForm((prev) => {
                   return {
@@ -250,8 +242,12 @@ const FormDialog = ({
           />
           </Stack> */}
       <DialogActions>
-        <Button onClick={handleOnClose}>Cancel</Button>
-        <Button onClick={submit}>Confirm</Button>
+        <Button onClick={handleOnClose} sx={{ color: COLOR.SECOND }}>
+          Cancel
+        </Button>
+        <Button onClick={submit} sx={{ color: COLOR.PRIMARY }}>
+          Confirm
+        </Button>
       </DialogActions>
     </Dialog>
   );
@@ -294,9 +290,9 @@ const Sentence = ({
   }, [selecting]);
 
   const contentI18n =
-    owner?.owner.dataProvider.data.i18nData[
+    owner?.owner.dataProvider.data.i18nData[data.data.content]?.[
       owner?.owner.dataProvider.currentLang
-    ][data.data.content] || '';
+    ] || '';
 
   return (
     <>

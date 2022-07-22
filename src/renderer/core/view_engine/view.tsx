@@ -41,7 +41,7 @@ import {
 } from './event';
 import DialogueJsonDialog from './json_dialog';
 import Menu from './menu';
-import DialogueToolbar from './toolbar';
+import Sidebar from './sidebar';
 
 const NodeCard = ({
   data,
@@ -179,7 +179,10 @@ const View = ({
 
   // handle zoom
   useLayoutEffect(() => {
-    d3.select(container).call(
+    console.log(container, container.querySelector('#dialogue_tree'));
+    const elm = container.querySelector('#dialogue_tree');
+    d3.select(elm).call(
+      /* d3.select(container).call( */
       /* eslint-disable func-names */
       (d3 as any).zoom().on('zoom', function () {
         const transfromRes = d3.zoomTransform(this);
@@ -191,7 +194,7 @@ const View = ({
       })
     );
 
-    d3.select(container).on('dblclick.zoom', null);
+    d3.select(elm).on('dblclick.zoom', null);
   }, [owner, container]);
 
   useLayoutEffect(() => {
@@ -376,6 +379,10 @@ const View = ({
         return;
       }
 
+      if (settingDialogVisible) {
+        return;
+      }
+
       if (owner.selectingNode) {
         const currentSelectingNode = owner.selectingNode;
         if (e.code === 'Enter') {
@@ -466,7 +473,13 @@ const View = ({
     return () => {
       document.removeEventListener('keydown', onKeyDown);
     };
-  }, [owner, doDeleteNode, doAppendSameLevelNode, doAppendChildNode]);
+  }, [
+    owner,
+    doDeleteNode,
+    doAppendSameLevelNode,
+    doAppendChildNode,
+    settingDialogVisible,
+  ]);
 
   const rootActionMenu = useMemo(() => {
     return [
@@ -593,7 +606,6 @@ const View = ({
       }
 
       const val = await owner.owner.dataProvider.getProjectData(projectPath);
-      console.log(owner.owner.dataProvider.data.toJson(), val.toJson());
       if (
         JSON.stringify(owner.owner.dataProvider.data.toJson()) !==
           JSON.stringify(val.toJson()) ||
@@ -664,33 +676,71 @@ const View = ({
         owner,
       }}
     >
-      <div
-        id="dialogue_tree"
-        style={{
-          width: '100%',
-          height: '100%',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'center',
-          alignItems: 'center',
-        }}
-        onContextMenu={handleContextMenu}
-      >
+      <Stack direction="row" sx={{ height: '100%' }}>
+        <Sidebar />
         <div
-          id="dialogue_tree_core"
-          ref={domRef}
+          id="dialogue_tree"
           style={{
             width: '100%',
             height: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+            alignItems: 'center',
+            padding: '30px',
           }}
+          onContextMenu={handleContextMenu}
         >
-          <div id="nodes" style={{ position: 'relative', cursor: 'pointer' }}>
-            {treeData.map((item) => {
-              return (
-                <div key={item.id}>
-                  {dragingTreeNode && item !== dragingTreeNode && (
-                    <>
-                      {item.data.type !== 'root' && (
+          <div
+            id="dialogue_tree_core"
+            ref={domRef}
+            style={{
+              width: '100%',
+              height: '100%',
+            }}
+          >
+            <div id="nodes" style={{ position: 'relative', cursor: 'pointer' }}>
+              {treeData.map((item) => {
+                return (
+                  <div key={item.id}>
+                    {dragingTreeNode && item !== dragingTreeNode && (
+                      <>
+                        {item.data.type !== 'root' && (
+                          <Box
+                            sx={{
+                              width: '100px',
+                              height: '100px',
+                              background: '#CC3775',
+                              opacity: 0.8,
+                              position: 'absolute',
+                              borderRadius: '50%',
+                              left: item.y - 50,
+                              top: item.x + 30,
+                              zIndex: 10,
+                              '&:hover': {
+                                opacity: 1,
+                              },
+                            }}
+                            onMouseEnter={() => {
+                              if (!owner) {
+                                return;
+                              }
+                              const currentNode = rootData.findChildNode(
+                                item.data.id
+                              ) as Node<any>;
+                              owner.dragTarget = {
+                                node: currentNode,
+                                type: 'parent',
+                              };
+                            }}
+                            onMouseLeave={() => {
+                              if (!owner) {
+                                return;
+                              }
+                              owner.dragTarget = null;
+                            }}
+                          />
+                        )}
                         <Box
                           sx={{
                             width: '100px',
@@ -699,7 +749,7 @@ const View = ({
                             opacity: 0.8,
                             position: 'absolute',
                             borderRadius: '50%',
-                            left: item.y - 50,
+                            left: item.y + 350,
                             top: item.x + 30,
                             zIndex: 10,
                             '&:hover': {
@@ -715,7 +765,7 @@ const View = ({
                             ) as Node<any>;
                             owner.dragTarget = {
                               node: currentNode,
-                              type: 'parent',
+                              type: 'child',
                             };
                           }}
                           onMouseLeave={() => {
@@ -725,339 +775,337 @@ const View = ({
                             owner.dragTarget = null;
                           }}
                         />
-                      )}
-                      <Box
-                        sx={{
-                          width: '100px',
-                          height: '100px',
-                          background: '#CC3775',
-                          opacity: 0.8,
-                          position: 'absolute',
-                          borderRadius: '50%',
-                          left: item.y + 350,
-                          top: item.x + 30,
-                          zIndex: 10,
-                          '&:hover': {
-                            opacity: 1,
-                          },
-                        }}
-                        onMouseEnter={() => {
-                          if (!owner) {
-                            return;
-                          }
-                          const currentNode = rootData.findChildNode(
+                      </>
+                    )}
+                    <NodeCard
+                      data={item}
+                      canDrag={item.data.type !== 'root' && !dragingTreeNode}
+                      select={() => {
+                        if (editing) {
+                          return;
+                        }
+                        owner.selectingNode =
+                          item.data.id === selectingNode?.id
+                            ? null
+                            : rootData.findChildNode(item.data.id);
+                      }}
+                      selecting={selectingNode?.id === item.data.id}
+                      startEdit={() => {
+                        owner.selectingNode = rootData.findChildNode(
+                          item.data.id
+                        );
+                        owner.editing = true;
+                      }}
+                      endEdit={(confirm, form) => {
+                        owner.editing = false;
+                        if (confirm) {
+                          item.data = form;
+
+                          setRootData((prev) => {
+                            const node = prev.findChildNode(
+                              item.data.id
+                            ) as Node<any>;
+                            node.data = form?.data;
+
+                            if (
+                              node?.data &&
+                              (node instanceof SentenceNode ||
+                                node instanceof BranchNode)
+                            ) {
+                              if (
+                                !owner?.owner.dataProvider.data.i18nData[
+                                  node.data.content
+                                ]
+                              ) {
+                                owner.owner.dataProvider.data.i18nData[
+                                  node.data.content
+                                ] = owner?.owner.dataProvider.data.projectSettings.i18n.reduce(
+                                  (res: any, key) => {
+                                    res[key] = '';
+                                    return res;
+                                  },
+                                  {}
+                                );
+                              }
+                              owner.owner.dataProvider.data.i18nData[
+                                node.data.content
+                              ] = {
+                                ...owner.owner.dataProvider.data.i18nData[
+                                  node.data.content
+                                ],
+                                [owner.owner.dataProvider.currentLang]:
+                                  form.contentI18n,
+                              };
+                              owner.owner.dataProvider.data.i18nData[
+                                node.data.content
+                              ][owner.owner.dataProvider.currentLang] =
+                                form.contentI18n;
+                            }
+
+                            const updateNode = new RootNode(prev.data, prev.id);
+                            updateNode.children = prev.children;
+                            return updateNode;
+                          });
+                        }
+                      }}
+                      onDrag={(d) => {
+                        if (!owner.draging) {
+                          owner.draging = true;
+                          owner.selectingNode = rootData.findChildNode(
                             item.data.id
-                          ) as Node<any>;
-                          owner.dragTarget = {
-                            node: currentNode,
-                            type: 'child',
-                          };
-                        }}
-                        onMouseLeave={() => {
-                          if (!owner) {
-                            return;
+                          );
+                          d.sourceEvent.stopPropagation();
+                          setDragingTreeNode(item);
+                        }
+                        item.x0 += d.dy / owner.zoom;
+                        item.y0 += d.dx / owner.zoom;
+                        setTreeData((prev) => {
+                          return [...prev];
+                        });
+                      }}
+                      endDrag={() => {
+                        setDragingTreeNode(null);
+                        if (owner.dragTarget && owner.selectingNode) {
+                          owner.selectingNode?.parent?.deleteChildNode(
+                            owner.selectingNode.id
+                          );
+                          const node = owner.dragTarget.node;
+                          if (owner.dragTarget.type === 'child') {
+                            node.addChildNode(owner.selectingNode);
+                          } else if (owner.dragTarget.type === 'parent') {
+                            let index: number | null =
+                              node.parent?.children.findIndex((n) => {
+                                return n.id === node.id;
+                              });
+                            index = index === -1 ? null : index;
+                            node.parent?.addChildNode(
+                              owner.selectingNode,
+                              index
+                            );
                           }
-                          owner.dragTarget = null;
-                        }}
-                      />
-                    </>
-                  )}
-                  <NodeCard
-                    data={item}
-                    canDrag={item.data.type !== 'root' && !dragingTreeNode}
-                    select={() => {
-                      if (editing) {
-                        return;
-                      }
-                      owner.selectingNode =
-                        item.data.id === selectingNode?.id
-                          ? null
-                          : rootData.findChildNode(item.data.id);
-                    }}
-                    selecting={selectingNode?.id === item.data.id}
-                    startEdit={() => {
-                      owner.selectingNode = rootData.findChildNode(
-                        item.data.id
-                      );
-                      owner.editing = true;
-                    }}
-                    endEdit={(confirm, form) => {
-                      owner.editing = false;
-                      if (confirm) {
-                        item.data = form;
+                        }
+                        owner.draging = false;
+                        owner.dragTarget = null;
                         setRootData((prev) => {
-                          const node = prev.findChildNode(item.data.id);
-                          node.data = form?.data;
-
-                          if (
-                            node instanceof SentenceNode ||
-                            node instanceof BranchNode
-                          ) {
-                            owner.owner.dataProvider.data.i18nData[
-                              owner.owner.dataProvider.currentLang
-                            ][node.data?.content] = form.contentI18n;
-                          }
-
                           const updateNode = new RootNode(prev.data, prev.id);
                           updateNode.children = prev.children;
                           return updateNode;
                         });
-                      }
-                    }}
-                    onDrag={(d) => {
-                      if (!owner.draging) {
-                        owner.draging = true;
-                        owner.selectingNode = rootData.findChildNode(
-                          item.data.id
-                        );
-                        d.sourceEvent.stopPropagation();
-                        setDragingTreeNode(item);
-                      }
-                      item.x0 += d.dy / owner.zoom;
-                      item.y0 += d.dx / owner.zoom;
-                      setTreeData((prev) => {
+                      }}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+            <svg
+              id="dialogue-tree-links-container"
+              style={{
+                position: 'absolute',
+                width: '100%',
+                height: '100%',
+                overflow: 'inherit',
+                pointerEvents: 'none',
+              }}
+            />
+            <div
+              id="connections"
+              style={{
+                position: 'absolute',
+                width: '100%',
+                height: '100%',
+                overflow: 'inherit',
+                pointerEvents: 'none',
+              }}
+            >
+              {linkData.map((item) => {
+                return (
+                  <Connection
+                    key={item.from.data.id + '-' + item.target.data.id}
+                    from={item.from}
+                    target={item.target}
+                    linkData={item.data}
+                    onChange={(val) => {
+                      item.data = val;
+                      setLinkData((prev) => {
                         return [...prev];
                       });
                     }}
-                    endDrag={() => {
-                      setDragingTreeNode(null);
-                      if (owner.dragTarget && owner.selectingNode) {
-                        owner.selectingNode?.parent?.deleteChildNode(
-                          owner.selectingNode.id
-                        );
-                        const node = owner.dragTarget.node;
-                        if (owner.dragTarget.type === 'child') {
-                          node.addChildNode(owner.selectingNode);
-                        } else if (owner.dragTarget.type === 'parent') {
-                          let index: number | null =
-                            node.parent?.children.findIndex((n) => {
-                              return n.id === node.id;
-                            });
-                          index = index === -1 ? null : index;
-                          node.parent?.addChildNode(owner.selectingNode, index);
-                        }
-                      }
-                      owner.draging = false;
-                      owner.dragTarget = null;
-                      setRootData((prev) => {
-                        const updateNode = new RootNode(prev.data, prev.id);
-                        updateNode.children = prev.children;
-                        return updateNode;
-                      });
+                    onEdit={() => {
+                      owner.editing = true;
+                    }}
+                    onEditFinish={() => {
+                      owner.editing = false;
                     }}
                   />
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
-          <svg
-            id="dialogue-tree-links-container"
-            style={{
-              position: 'absolute',
-              width: '100%',
-              height: '100%',
-              overflow: 'inherit',
-              pointerEvents: 'none',
-            }}
-          />
-          <div
-            id="connections"
-            style={{
-              position: 'absolute',
-              width: '100%',
-              height: '100%',
-              overflow: 'inherit',
-              pointerEvents: 'none',
-            }}
+          <MuiMenu
+            open={contextMenu !== null}
+            onClose={handleClose}
+            anchorReference="anchorPosition"
+            anchorPosition={
+              contextMenu !== null
+                ? { top: contextMenu.mouseY, left: contextMenu.mouseX }
+                : undefined
+            }
           >
-            {linkData.map((item) => {
-              return (
-                <Connection
-                  key={item.from.data.id + '-' + item.target.data.id}
-                  from={item.from}
-                  target={item.target}
-                  linkData={item.data}
-                  onChange={(val) => {
-                    item.data = val;
-                    setLinkData((prev) => {
-                      return [...prev];
-                    });
-                  }}
-                  onEdit={() => {
-                    owner.editing = true;
-                  }}
-                  onEditFinish={() => {
-                    owner.editing = false;
-                  }}
-                />
-              );
-            })}
-          </div>
-        </div>
-        <MuiMenu
-          open={contextMenu !== null}
-          onClose={handleClose}
-          anchorReference="anchorPosition"
-          anchorPosition={
-            contextMenu !== null
-              ? { top: contextMenu.mouseY, left: contextMenu.mouseX }
-              : undefined
-          }
-        >
-          {!selectingNode && (
-            <MenuItem
-              onClick={() => {
-                setSettingDialogVisible(true);
-                handleClose();
+            {!selectingNode && (
+              <MenuItem
+                onClick={() => {
+                  setSettingDialogVisible(true);
+                  handleClose();
+                }}
+              >
+                Settings
+              </MenuItem>
+            )}
+
+            {selectingNode instanceof RootNode &&
+              rootActionMenu.map((item) => {
+                return (
+                  <MenuItem
+                    key={item.key}
+                    onClick={() => {
+                      item.action();
+                      handleClose();
+                    }}
+                  >
+                    {item.name}
+                  </MenuItem>
+                );
+              })}
+            {selectingNode instanceof SentenceNode &&
+              sentenceActionMenu.map((item) => {
+                return (
+                  <MenuItem
+                    key={item.key}
+                    onClick={() => {
+                      item.action();
+                      handleClose();
+                    }}
+                  >
+                    {item.name}
+                  </MenuItem>
+                );
+              })}
+
+            {selectingNode instanceof BranchNode &&
+              branchActionMenu.map((item) => {
+                return (
+                  <MenuItem
+                    key={item.key}
+                    onClick={() => {
+                      item.action();
+                      handleClose();
+                    }}
+                  >
+                    {item.name}
+                  </MenuItem>
+                );
+              })}
+          </MuiMenu>
+
+          {settingDialogVisible && (
+            <SettingsDialog
+              close={() => {
+                setSettingDialogVisible(false);
               }}
-            >
-              Settings
-            </MenuItem>
+            />
           )}
 
-          {selectingNode instanceof RootNode &&
-            rootActionMenu.map((item) => {
-              return (
-                <MenuItem
-                  key={item.key}
-                  onClick={() => {
-                    item.action();
-                    handleClose();
-                  }}
-                >
-                  {item.name}
-                </MenuItem>
-              );
-            })}
-          {selectingNode instanceof SentenceNode &&
-            sentenceActionMenu.map((item) => {
-              return (
-                <MenuItem
-                  key={item.key}
-                  onClick={() => {
-                    item.action();
-                    handleClose();
-                  }}
-                >
-                  {item.name}
-                </MenuItem>
-              );
-            })}
+          {previewDialogueVisible && (
+            <PreviewDialogue
+              data={rootData.toRenderJson()}
+              close={() => {
+                setPreviewDialogueVisible(false);
+              }}
+            />
+          )}
 
-          {selectingNode instanceof BranchNode &&
-            branchActionMenu.map((item) => {
-              return (
-                <MenuItem
-                  key={item.key}
-                  onClick={() => {
-                    item.action();
-                    handleClose();
-                  }}
-                >
-                  {item.name}
-                </MenuItem>
-              );
-            })}
-        </MuiMenu>
-
-        {settingDialogVisible && (
-          <SettingsDialog
-            close={() => {
-              setSettingDialogVisible(false);
-            }}
-          />
-        )}
-
-        {previewDialogueVisible && (
-          <PreviewDialogue
-            data={rootData.toRenderJson()}
-            close={() => {
-              setPreviewDialogueVisible(false);
-            }}
-          />
-        )}
-
-        {dialogueJsonDialogueVisible && (
-          <DialogueJsonDialog
-            provider={owner.owner.dataProvider}
-            close={() => {
-              setDialogueJsonDialogueVisible(false);
-            }}
-          />
-        )}
-        <Stack
-          direction="row"
-          spacing={2}
-          sx={{
-            position: 'absolute',
-            top: '32px',
-            width: '100%',
-          }}
-        >
-          <Menu />
+          {dialogueJsonDialogueVisible && (
+            <DialogueJsonDialog
+              provider={owner.owner.dataProvider}
+              close={() => {
+                setDialogueJsonDialogueVisible(false);
+              }}
+            />
+          )}
           <Stack
             direction="row"
+            spacing={2}
             sx={{
               position: 'absolute',
-              right: '64px',
+              top: '32px',
+              left: '300px',
+              width: 'calc(100% - 300px)',
             }}
-            spacing={2}
           >
-            <Select
-              labelId="i18n-select-label"
-              id="i18n-select"
-              value={currentLang}
-              label="I18n"
-              size="small"
-              sx={{ backgroundColor: '#fff', width: '120px' }}
-              onChange={(e) => {
-                owner.owner.dataProvider.currentLang = e.target.value;
+            <Menu />
+            <Stack
+              direction="row"
+              sx={{
+                position: 'absolute',
+                right: '64px',
               }}
+              spacing={2}
             >
-              {owner.owner.dataProvider.data.projectSettings.i18n.map(
-                (item2, j) => {
-                  return (
-                    /* eslint-disable-next-line */
-                    <MenuItem key={j} value={item2}>
-                      {item2}
-                    </MenuItem>
-                  );
-                }
-              )}
-            </Select>
-            <Button
-              variant="contained"
-              startIcon={<PreviewIcon />}
-              size="large"
-              onClick={() => {
-                setPreviewDialogueVisible(true);
-              }}
-              disableFocusRipple
-            >
-              Preview Dialogue!
-            </Button>
+              <Select
+                labelId="i18n-select-label"
+                id="i18n-select"
+                value={currentLang}
+                label="I18n"
+                size="small"
+                sx={{ backgroundColor: '#fff', width: '120px' }}
+                onChange={(e) => {
+                  owner.owner.dataProvider.currentLang = e.target.value;
+                }}
+              >
+                {owner.owner.dataProvider.data.projectSettings.i18n.map(
+                  (item2, j) => {
+                    return (
+                      /* eslint-disable-next-line */
+                      <MenuItem key={j} value={item2}>
+                        {item2}
+                      </MenuItem>
+                    );
+                  }
+                )}
+              </Select>
+              <Button
+                variant="contained"
+                startIcon={<PreviewIcon />}
+                size="large"
+                onClick={() => {
+                  setPreviewDialogueVisible(true);
+                }}
+              >
+                Preview Dialogue!
+              </Button>
+            </Stack>
           </Stack>
-        </Stack>
-      </div>
+        </div>
 
-      {saving && <Loading content="Saving...Please wait for a while" />}
+        {saving && <Loading content="Saving...Please wait for a while" />}
 
-      <DialogueToolbar />
+        {/* <DialogueToolbar /> */}
 
-      {saveConfirmationVisible && (
-        <Confimration
-          close={() => {
-            setSaveConfirmationVisible(false);
-          }}
-          onAction={(confirmation: boolean) => {
-            if (confirmation) {
-              window.electron.ipcRenderer.close();
-            } else {
+        {saveConfirmationVisible && (
+          <Confimration
+            close={() => {
               setSaveConfirmationVisible(false);
-            }
-          }}
-        />
-      )}
+            }}
+            onAction={(confirmation: boolean) => {
+              if (confirmation) {
+                window.electron.ipcRenderer.close();
+              } else {
+                setSaveConfirmationVisible(false);
+              }
+            }}
+          />
+        )}
+      </Stack>
     </Context.Provider>
   );
 };

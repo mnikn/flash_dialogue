@@ -1,12 +1,12 @@
 {
   "name": "flash-dialogue",
   "version": "0.1.0",
-  "description": "A foundation for scalable desktop apps",
+  "description": "Make your dialogue like flash!",
   "main": "./dist/main/main.js",
   "author": {
-    "name": "Electron React Boilerplate Maintainers",
-    "email": "electronreactboilerplate@gmail.com",
-    "url": "https://github.com/quick-dialogue"
+    "name": "Flash Dialogue",
+    "email": "iamtruelyking@gmail.com",
+    "url": "https://github.com/flash-dialogue"
   },
   "scripts": {
     "electron-rebuild": "node -r ts-node/register ../../.erb/scripts/electron-rebuild.js",

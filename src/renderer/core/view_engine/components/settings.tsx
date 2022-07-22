@@ -16,7 +16,7 @@ import {
   TextField,
 } from '@mui/material';
 import { useCallback, useContext, useEffect, useState } from 'react';
-import { SchemaConfigEditor } from 'react-dynamic-material-form';
+import { SchemaConfigEditor } from '@mnikn/react-codebase';
 import GridForm from 'renderer/components/grid_form';
 import * as Base64 from 'js-base64';
 import { ProjectSettings } from 'renderer/core/model/dialogue_tree';

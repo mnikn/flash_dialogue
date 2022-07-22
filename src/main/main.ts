@@ -65,12 +65,76 @@ ipcMain.on('openJsonFile', async (_, arg) => {
   mainWindow.webContents.send('openFile', { res, arg });
 });
 
+const doReadFolder = (baseUrl: string, currentNode: any, config: any) => {
+  if (!currentNode) {
+    return;
+  }
+
+  const items = fs.readdirSync(baseUrl + '\\' + currentNode.currentPath, {
+    withFileTypes: true,
+  });
+
+  for (const item of items) {
+    if (item.isDirectory()) {
+      const newFolder: any = {
+        type: 'folder',
+        partName: item.name,
+        currentPath:
+          (currentNode.currentPath ? currentNode.currentPath + '\\' : '') +
+          item.name,
+        children: [],
+      };
+      doReadFolder(baseUrl, newFolder, config);
+      currentNode.children.push(newFolder);
+    } else {
+      const newFile = {
+        type: 'file',
+        partName: item.name,
+        currentPath:
+          (currentNode.currentPath ? currentNode.currentPath + '\\' : '') +
+          item.name,
+      };
+      if (!config.filter || config.filter(newFile)) {
+        currentNode.children.push(newFile);
+      }
+    }
+  }
+};
+
+ipcMain.on('readFolderRecursive', async (event, arg) => {
+  if (fs.existsSync(arg.path)) {
+    const node = {
+      type: 'folder',
+      partName: '',
+      currentPath: '',
+      children: [],
+    };
+    doReadFolder(arg.path, node, {
+      filter: (f: any) => {
+        return arg.extensions ? f.partName.includes(arg.extensions) : true;
+      },
+    });
+    event.reply('readFolderRecursive', { res: node, arg });
+  } else {
+    event.reply('readFolderRecursive', { res: null, arg });
+  }
+});
+
 ipcMain.on('readJsonFile', async (event, arg) => {
   if (fs.existsSync(arg.path)) {
     const content = fs.readFileSync(arg.path).toString();
     event.reply('readJsonFile', { res: content, arg });
   } else {
     event.reply('readJsonFile', { res: null, arg });
+  }
+});
+
+ipcMain.on('readFile', async (event, arg) => {
+  if (fs.existsSync(arg.path)) {
+    const content = fs.readFileSync(arg.path).toString();
+    event.reply('readFile', { res: content, arg });
+  } else {
+    event.reply('readFile', { res: null, arg });
   }
 });
 
@@ -105,6 +169,21 @@ ipcMain.on('saveJsonFile', async (event, arg = {}) => {
       arg,
     };
     event.reply('saveJsonFile', data);
+  }
+});
+
+ipcMain.on('saveFile', async (event, arg = {}) => {
+  if (!mainWindow) {
+    return;
+  }
+  const filePath = arg.path;
+  if (filePath) {
+    fs.writeFileSync(filePath, arg.data);
+    const data = {
+      res: { filePath },
+      arg,
+    };
+    event.reply('saveFile', data);
   }
 });
 

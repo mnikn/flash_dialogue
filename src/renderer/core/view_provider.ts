@@ -3,6 +3,7 @@ import DialogueTree from '.';
 import { createLogger } from '../utils/logger';
 import DialogueTreeModel from './model/dialogue_tree';
 import Node from './model/node';
+import RootNode from './model/node/root';
 import ViewEngine from './view_engine';
 
 interface DragTarget {
@@ -57,9 +58,12 @@ class ViewProvider {
       return;
     }
 
-    if (model.dialogues.length > 0) {
-      this.viewEngine.renderDialogue(model.dialogues[0]);
-    }
+    this.viewEngine.renderDialogue(
+      this.owner.dataProvider.currentDialogue || new RootNode()
+    );
+    // if (model.dialogues.length > 0) {
+    //   this.viewEngine.renderDialogue(model.dialogues[0]);
+    // }
   }
 
   get containerElement(): HTMLDivElement | null {

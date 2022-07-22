@@ -1,5 +1,5 @@
 import { DialogueTreeJson } from '..';
-import RootNode from './node/root';
+import RootNode, { RootNodeJsonData } from './node/root';
 import SentenceNode from './node/sentence';
 import BranchNode from './node/branch';
 import { NodeJsonData } from './node';
@@ -24,6 +24,90 @@ export interface ProjectSettings {
   i18n: string[];
 }
 
+function doParseDialogueJsonData(node: NodeJsonData) {
+  if (node.type === 'root') {
+    const json = node;
+    const instance = new RootNode();
+    instance.children = json.children.map((item: any) => {
+      return doParseDialogueJsonData(item);
+    });
+    if (node.id) {
+      instance.id = node.id;
+    }
+    instance.data = {
+      ...instance.data,
+      ...(node.data as any),
+    };
+    instance.links = json.links.map((l) => {
+      const lInstance = new Link(l.sourceId, l.targetId);
+      lInstance.data = l.data;
+      return lInstance;
+    });
+    return instance;
+  }
+
+  const json = node;
+  switch (json.type) {
+    case 'sentence': {
+      const instance = new SentenceNode();
+      instance.children = (json.children || []).map((item: any) => {
+        return doParseDialogueJsonData(item);
+      });
+      if (node.id) {
+        instance.id = node.id;
+      }
+      instance.links = json.links.map((l) => {
+        const lInstance = new Link(l.sourceId, l.targetId);
+        lInstance.data = l.data;
+        return lInstance;
+      });
+      instance.data = {
+        ...instance.data,
+        ...(json.data as any),
+      };
+      return instance;
+    }
+    case 'branch': {
+      const instance = new BranchNode();
+      instance.children = (json.children || []).map((item: any) => {
+        return doParseDialogueJsonData(item);
+      });
+      if (node.id) {
+        instance.id = node.id;
+      }
+      instance.links = json.links.map((l) => {
+        const lInstance = new Link(l.sourceId, l.targetId);
+        lInstance.data = l.data;
+        return lInstance;
+      });
+      instance.data = {
+        ...instance.data,
+        ...(json.data as any),
+      };
+      return instance;
+    }
+    default: {
+      break;
+    }
+  }
+  return new SentenceNode();
+}
+
+export function parseDialogueJsonData(data: RootNodeJsonData): RootNode {
+  const dialogue = doParseDialogueJsonData(data);
+  dialogue.iterate((c) => {
+    c.links.forEach((l) => {
+      if (typeof l.source === 'string') {
+        l.source = dialogue.findChildNode(l.source);
+      }
+      if (typeof l.target === 'string') {
+        l.target = dialogue.findChildNode(l.target);
+      }
+    });
+  });
+  return dialogue as RootNode;
+}
+
 class DialogueTreeModel {
   public dialogues: RootNode[] = [];
   public projectSettings: ProjectSettings = {
@@ -31,9 +115,7 @@ class DialogueTreeModel {
     i18n: ['en'],
   };
 
-  public i18nData: { [key: string]: any } = {
-    en: {},
-  };
+  public i18nData: { [key: string]: any } = {};
 
   constructor(jsonData: DialogueTreeJson) {
     this.dialogues = jsonData.dialogues.map((item) => {

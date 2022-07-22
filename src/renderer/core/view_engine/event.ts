@@ -1,4 +1,5 @@
 import Eventemitter from 'eventemitter3';
+import { FileTreeFile, FileTreeFolder } from '../data_provider';
 
 export enum EventType {
   SHOW_EDID = 'show_edit',
@@ -10,6 +11,8 @@ export enum EventType {
   PREVIEW_DIALOGUE_JSON = 'preview_dialogue_json',
 
   SHOW_SETTINGS = 'show_settings',
+
+  SHOW_NAME_DIALOG = 'show_name_dialog',
 }
 
 const eventemitter = new Eventemitter();
@@ -52,4 +55,17 @@ export const showDialogueSettings = () => {
 export const listenShowDialogueSettings = (callback: () => void) => {
   eventemitter.on(EventType.SHOW_DIALOGUE_SETTINGS, callback);
   return () => eventemitter.off(EventType.SHOW_DIALOGUE_SETTINGS, callback);
+};
+
+export const showNameDialog = (data: any) => {
+  eventemitter.emit(EventType.SHOW_NAME_DIALOG, data);
+};
+export const listenShowNameDialog = (
+  callback: (arg: {
+    source: FileTreeFile | FileTreeFolder | null;
+    action: 'create_file' | 'create_folder' | 'rename_file' | 'rename_folder';
+  }) => void
+) => {
+  eventemitter.on(EventType.SHOW_NAME_DIALOG, callback);
+  return () => eventemitter.off(EventType.SHOW_NAME_DIALOG, callback);
 };

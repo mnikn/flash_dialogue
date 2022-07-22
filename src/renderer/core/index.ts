@@ -36,7 +36,6 @@ class DialogueTree {
   }
 
   public async load(data?: DialogueTreeJson) {
-    console.log(data);
     await this.dataProvider.load();
     this.viewProvider.render(this.dataProvider.data);
   }
