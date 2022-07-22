@@ -16,7 +16,6 @@ import {
   Typography,
 } from '@mui/material';
 import { useContext, useEffect, useState } from 'react';
-import { I18nTextField, COLOR } from '@mnikn/react-codebase';
 import { ProjectSettings } from 'renderer/core/model/dialogue_tree';
 import { SentenceNodeJsonData } from 'renderer/core/model/node/sentence';
 import { getFinalImgPath } from 'renderer/utils/pic';
@@ -242,12 +241,8 @@ const FormDialog = ({
           />
           </Stack> */}
       <DialogActions>
-        <Button onClick={handleOnClose} sx={{ color: COLOR.SECOND }}>
-          Cancel
-        </Button>
-        <Button onClick={submit} sx={{ color: COLOR.PRIMARY }}>
-          Confirm
-        </Button>
+        <Button onClick={handleOnClose}>Cancel</Button>
+        <Button onClick={submit}>Confirm</Button>
       </DialogActions>
     </Dialog>
   );

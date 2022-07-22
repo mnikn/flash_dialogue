@@ -11,19 +11,7 @@ import DialogueTreeModel, {
   parseDialogueJsonData,
 } from './model/dialogue_tree';
 import RootNode from './model/node/root';
-
-export interface FileTreeFolder {
-  type: 'folder';
-  partName: string;
-  currentPath: string;
-  children: (FileTreeFile | FileTreeFolder)[];
-}
-
-export interface FileTreeFile {
-  type: 'file';
-  partName: string;
-  currentPath: string | null;
-}
+import { FileTreeFile, FileTreeFolder, findFolderInTree } from './utils/file';
 
 function iterFileNode(
   node: FileTreeFolder | FileTreeFile,
@@ -348,6 +336,60 @@ class DataProvider {
 
     this.projectTree = { ...this.projectTree };
     this.currentDialogueFile = newFile;
+  }
+
+  public async renameFile(sourcePath: string, targetPath: string) {
+    const projectPath = localStorage.getItem(RECENT_PROJECT_PATH);
+    const finalSourcePath = projectPath + '\\' + sourcePath;
+    const finalTargetPath = projectPath + '\\' + targetPath;
+    console.log('rr: ', finalSourcePath, finalTargetPath);
+    window.electron.ipcRenderer
+      .call('renameFile', {
+        sourcePath: finalSourcePath,
+        targetPath: finalTargetPath,
+      })
+      .then(() => {
+        const file = findFileInTree(this.projectTree, sourcePath);
+
+        if (file) {
+          file.partName = targetPath.substring(
+            targetPath.lastIndexOf('\\') + 1
+          );
+          file.currentPath = targetPath;
+
+          this.projectTree = { ...this.projectTree };
+          if (
+            projectPath + '\\' + sourcePath ===
+            localStorage.getItem(RECENT_DIALOGUE_PATH)
+          ) {
+            localStorage.setItem(RECENT_DIALOGUE_PATH, finalTargetPath);
+            this.currentDialogueFile = file;
+          }
+        }
+      });
+  }
+
+  public async deleteDialogue(path: string) {
+    const projectPath = localStorage.getItem(RECENT_PROJECT_PATH);
+    await window.electron.ipcRenderer.call('deleteFile', {
+      path: projectPath + '\\' + path,
+    });
+    const folder = findFolderInTree(
+      this.projectTree,
+      path.substring(0, path.lastIndexOf('\\'))
+    );
+
+    if (folder) {
+      folder.children = folder.children.filter(
+        (item) => item.currentPath !== path
+      );
+      this.projectTree = { ...this.projectTree };
+    }
+    if (this.currentDialogueFile?.currentPath === path) {
+      this.currentDialogueFile = null;
+      this.currentDialogue = null;
+      localStorage.removeItem(RECENT_DIALOGUE_PATH);
+    }
   }
 
   get saving(): boolean {

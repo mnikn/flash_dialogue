@@ -180,10 +180,59 @@ ipcMain.on('saveFile', async (event, arg = {}) => {
   if (filePath) {
     fs.writeFileSync(filePath, arg.data);
     const data = {
-      res: { filePath },
+      res: { path: filePath },
       arg,
     };
     event.reply('saveFile', data);
+  }
+});
+
+ipcMain.on('deleteFile', async (event, arg) => {
+  const filePath = arg.path;
+  if (path) {
+    fs.rmSync(filePath);
+    const data = {
+      res: { path },
+      arg: { action: arg?.action },
+    };
+    event.reply('deleteFile', data);
+  }
+});
+
+
+ipcMain.on('renameFile', async (event, arg) => {
+  const sourcePath = arg.sourcePath;
+  if (sourcePath) {
+    fs.renameSync(sourcePath, arg.targetPath);
+    const data = {
+      res: {},
+      arg: { action: arg?.action },
+    };
+    event.reply('renameFile', data);
+  }
+});
+
+ipcMain.on('newFolder', async (event, arg) => {
+  const filePath = arg.path;
+  if (filePath) {
+    fs.mkdirSync(filePath);
+    const data = {
+      res: { path: filePath },
+      arg: { action: arg?.action },
+    };
+    event.reply('newFolder', data);
+  }
+});
+
+ipcMain.on('renameFolder', async (event, arg) => {
+  const sourcePath = arg.sourcePath;
+  if (sourcePath) {
+    fs.renameSync(sourcePath, arg.targetPath);
+    const data = {
+      res: {},
+      arg: { action: arg?.action },
+    };
+    event.reply('renameFolder', data);
   }
 });
 

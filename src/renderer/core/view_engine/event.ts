@@ -62,8 +62,8 @@ export const showNameDialog = (data: any) => {
 };
 export const listenShowNameDialog = (
   callback: (arg: {
-    source: FileTreeFile | FileTreeFolder | null;
-    action: 'create_file' | 'create_folder' | 'rename_file' | 'rename_folder';
+    sourceData: FileTreeFile | FileTreeFolder | null;
+    actionData: 'create_file' | 'create_folder' | 'rename_file' | 'rename_folder';
   }) => void
 ) => {
   eventemitter.on(EventType.SHOW_NAME_DIALOG, callback);

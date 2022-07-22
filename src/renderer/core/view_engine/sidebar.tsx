@@ -14,21 +14,9 @@ import {
 } from '@mui/material';
 import { useContext, useEffect, useState } from 'react';
 import useEventState from 'renderer/hooks/use_event_state';
+import { FileTreeFile, FileTreeFolder } from '../utils/file';
 import Context from './context';
 import { listenShowNameDialog, showNameDialog } from './event';
-
-export interface FileTreeFolder {
-  type: 'folder';
-  partName: string;
-  currentPath: string;
-  children: (FileTreeFile | FileTreeFolder)[];
-}
-
-export interface FileTreeFile {
-  type: 'file';
-  partName: string;
-  currentPath: string | null;
-}
 
 function NameDialog() {
   const { owner } = useContext(Context);
@@ -57,7 +45,7 @@ function NameDialog() {
       setAction(actionData);
       setName(
         actionData === 'rename_file' || actionData === 'rename_folder'
-          ? sourceData?.partName.replace('.json', '') || ''
+          ? sourceData?.partName.replace('.fd', '') || ''
           : ''
       );
       setVisible(true);
@@ -118,7 +106,14 @@ function NameDialog() {
                 source as FileTreeFolder
               );
             } else if (action === 'rename_file') {
-              console.log(action);
+              const folderPath = source?.currentPath?.substring(
+                0,
+                source?.currentPath?.lastIndexOf('\\')
+              );
+              owner?.owner.dataProvider.renameFile(
+                source?.currentPath || '',
+                folderPath + `${name}.fd`
+              );
             } else if (action === 'create_folder') {
               console.log(action);
             }
@@ -265,13 +260,13 @@ function Sidebar() {
     setMenuAnchorEl(null);
   };
   const [menuActions, setMenuActions] = useState<
-    { fn: () => void; title: string }[]
+    { fn: (...args: any) => void; title: string }[]
   >([]);
 
   const newFile = (folder?: FileTreeFolder) => {
     showNameDialog({
-      source: folder,
-      action: 'create_file',
+      sourceData: folder,
+      actionData: 'create_file',
     });
   };
 
@@ -323,13 +318,16 @@ function Sidebar() {
                     {
                       title: 'Rename...',
                       fn: () => {
-                        console.log('rename');
+                        showNameDialog({
+                          sourceData: d,
+                          actionData: 'rename_file',
+                        });
                       },
                     },
                     {
                       title: 'Delete file',
                       fn: () => {
-                        console.log('delete');
+                        owner?.owner.dataProvider.deleteDialogue(d.currentPath);
                       },
                     },
                   ]);
